@@ -1,59 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { cn } from "@/lib/utils";
 
 export function RingContainer({
   children,
   className,
-  style,
-  onClick,
-  suppressTransition,
 }: {
   children: React.ReactNode;
   className?: string;
-  style?: React.CSSProperties;
-  onClick?: () => void;
-  // While actively dragging, the rotation needs to track the pointer
-  // 1:1 with no lag -- the 700ms ease-out transition (still used for the
-  // click-to-jump/snap-on-release cases) would fight a live drag otherwise.
-  suppressTransition?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "absolute w-full h-full ease-out",
-        suppressTransition ? "duration-0" : "transition-transform duration-700",
+        "absolute w-full h-full transition-transform duration-700 ease-out",
         className,
       )}
-      style={style}
     >
-      {/* onClick/role/tabIndex live here, on the small visible label block,
-          NOT on the full w-full/h-full wrapper above (that wrapper is sized
-          to the whole ring purely so this label has a full-size parent to
-          rotate around the center -- attaching the click target to it made
-          the entire rotated 1200x1200 square clickable, not just the label
-          the customer actually sees). */}
-      <div
-        className={cn(
-          "text-xs absolute h-[100px] top-0 left-1/2 -translate-x-1/2 text-white flex flex-col items-center justify-center",
-          onClick && "cursor-pointer",
-        )}
-        onClick={onClick}
-        role={onClick ? "button" : undefined}
-        tabIndex={onClick ? 0 : undefined}
-        onKeyDown={
-          onClick
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onClick();
-                }
-              }
-            : undefined
-        }
-      >
+      <div className="text-xs absolute h-[100px] top-0 left-1/2 -translate-x-1/2 text-white flex flex-col items-center justify-center">
         {children}
       </div>
     </div>
@@ -64,39 +28,25 @@ export function RingItem({
   title,
   value,
   className,
-  style,
   inline,
   secondaryValue,
-  onClick,
-  suppressTransition,
 }: {
   title?: string;
   value?: number | string;
   className?: string;
-  style?: React.CSSProperties;
   // Renders value beside title on one line instead of stacked below the
   // dot separator -- used for the Wave/Free item per explicit design request.
   inline?: boolean;
   // Fills the space freed up by `inline` (previously the stacked value slot)
   // with a second stat below the dot separator -- e.g. mint progress.
   secondaryValue?: number | string;
-  // Lets a customer click any wave label to manually rotate the ring and
-  // center it, browsing all 7 waves instead of only whichever ones happen
-  // to sit near the auto-computed pivot.
-  onClick?: () => void;
-  suppressTransition?: boolean;
 }) {
   if (inline) {
     return (
-      <RingContainer
-        className={cn("font-semibold", className)}
-        style={style}
-        onClick={onClick}
-        suppressTransition={suppressTransition}
-      >
+      <RingContainer className={cn("font-semibold", className)}>
         <div className="flex items-center gap-2">
           <span>{title}</span>
-          <span>{value ?? " "}</span>
+          <span>{value ?? "\u00A0"}</span>
         </div>
         {secondaryValue !== undefined && (
           <>
@@ -114,12 +64,7 @@ export function RingItem({
   }
 
   return (
-    <RingContainer
-      className={cn("font-semibold", className)}
-      style={style}
-      onClick={onClick}
-      suppressTransition={suppressTransition}
-    >
+    <RingContainer className={cn("font-semibold", className)}>
       <div>{title}</div>
       <div className="relative flex h-[35px] my-1">
         <div className="absolute z-0 h-[35px] left-1/2 -translate-x-1/2 top-0 w-[2px] bg-white"></div>
@@ -127,34 +72,40 @@ export function RingItem({
           <div className="w-[9px] h-[9px] rounded-full bg-white"></div>
         </div>
       </div>
-      <div>{value ?? " "}</div>
+      <div>{value ?? "\u00A0"}</div>
     </RingContainer>
   );
 }
 
-// Position of each wave is relative to the pivot wave, not a fixed anchor: the
-// pivot sits at 0deg (top/middle), earlier waves rotate anticlockwise to the
-// left (negative), later waves sit clockwise to the right (positive).
+// Position of each wave is relative to the ACTIVE wave, not a fixed anchor: the
+// active wave sits at rotate-0 (top/middle), finished waves rotate anticlockwise
+// to the left (negative), upcoming waves sit clockwise to the right (positive).
+// Indexed by (waveNum - activeWaveNum) + 6, covering every possible offset for a
+// fixed 7-wave layout (-6..+6). As activeWave advances, each wave's offset shifts
+// by one slot, which combined with the transition on RingContainer animates the
+// whole ring rotating anticlockwise -- past waves exit left, the next wave enters
+// from the right into the middle.
 //
 // 20deg/step (not the ring's full 360/7 spacing): on this ring's large radius even
 // a ~51deg step swings an item most of the way to the viewport edge, and any step
 // whose max offset (x6) reaches or passes 180deg visually wraps to the opposite
 // side -- exactly what put wave 7 on the left while wave 1 was still active. 20deg
 // keeps every offset (max 120deg) unambiguously on its correct side and on-screen.
-const DEGREES_PER_STEP = 20;
-
-// Roughly how many horizontal pixels of drag correspond to one 20deg step --
-// tuned for a natural-feeling "grab and spin the wheel" drag, not derived from
-// the ring's actual on-screen radius (which changes with the scale-75/100
-// responsive breakpoint). Adjust this single constant if the drag ever feels
-// too twitchy or too heavy.
-const PIXELS_PER_STEP = 90;
-
-// Ignore pointer movement below this threshold so a plain click (via
-// RingItem's onClick) still works for jumping straight to a wave -- without
-// this, any drag at all, even a few px of natural hand tremor during a click,
-// would suppress the click.
-const DRAG_THRESHOLD_PX = 6;
+const ROTATION_BY_OFFSET = [
+  "-rotate-120", // -6
+  "-rotate-100", // -5
+  "-rotate-80", // -4
+  "-rotate-60", // -3
+  "-rotate-40", // -2
+  "-rotate-20", // -1
+  "rotate-0", // 0 (active -- middle)
+  "rotate-20", // +1
+  "rotate-40", // +2
+  "rotate-60", // +3
+  "rotate-80", // +4
+  "rotate-100", // +5
+  "rotate-120", // +6
+];
 
 export function RingLine({ className }: { className?: string }) {
   return (
@@ -166,7 +117,7 @@ export function RingLine({ className }: { className?: string }) {
   );
 }
 
-// Fixed 7-wave collection (see DEGREES_PER_STEP's own comment) -- used only
+// Fixed 7-wave collection (see ROTATION_BY_OFFSET's own comment) -- used only
 // to size the loading skeleton below, not to assume real wave data.
 const SKELETON_WAVE_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -183,73 +134,25 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
   );
-  // pivotWave/setPivotWave live in BreathContractContext (not local state
-  // here) so a click or drag updates the SAME value the status box and price
-  // fields read -- see BreathContractContext for why.
+  // Which wave sits in the ring's center slot -- computed once in
+  // BreathContractContext (as pivotWave) so the ring and the status box
+  // above it always agree on the same wave instead of each deriving it
+  // separately and risking drift.
   const pivot = contract.pivotWave ?? 1;
   const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
-  // Drag-to-rotate: dragOffsetDeg is a LIVE, continuous rotation added on top
-  // of every item's discrete pivot-based angle while a drag is in progress,
-  // so the ring visually tracks the pointer 1:1 instead of only jumping
-  // between fixed 20deg steps. On release, it's converted back into a
-  // discrete pivot change (however many 20deg steps were dragged through) and
-  // reset to 0 -- the existing transition-transform then animates the final
-  // snap smoothly.
-  const [dragOffsetDeg, setDragOffsetDeg] = useState(0);
-  const dragState = useRef<{
-    pointerId: number;
-    startX: number;
-    isDragging: boolean;
-  } | null>(null);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragState.current = { pointerId: e.pointerId, startX: e.clientX, isDragging: false };
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragState.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
-    const deltaX = e.clientX - drag.startX;
-    if (!drag.isDragging && Math.abs(deltaX) < DRAG_THRESHOLD_PX) return;
-    drag.isDragging = true;
-    setDragOffsetDeg((deltaX / PIXELS_PER_STEP) * DEGREES_PER_STEP);
-  };
-
-  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragState.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
-    if (drag.isDragging && waveList.length > 0) {
-      // Dragging right (positive deltaX/dragOffsetDeg) rotates every item
-      // further clockwise -- which brings earlier, lower-numbered waves
-      // (sitting at negative angles) toward center, hence the negation here.
-      const steps = Math.round(dragOffsetDeg / DEGREES_PER_STEP);
-      const minWave = waveList[0].waveNum;
-      const maxWave = waveList[waveList.length - 1].waveNum;
-      const nextPivot = Math.min(maxWave, Math.max(minWave, pivot - steps));
-      contract.setPivotWave(nextPivot);
-    }
-    setDragOffsetDeg(0);
-    dragState.current = null;
-  };
-
   return (
-    <div
-      className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide touch-pan-y"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-    >
-      <div className="relative rounded-full bg-black/50 w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing">
-        {/* Ring Items -- one per wave, positioned relative to the pivot wave */}
+    <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">
+      <div className="relative rounded-full bg-black/50 w-full h-full flex items-center justify-center">
+        {/* Ring Items -- one per wave, positioned relative to the active wave */}
         {isLoadingWaves
           ? SKELETON_WAVE_NUMBERS.map((waveNum) => (
               <RingContainer
                 key={waveNum}
-                className="font-semibold"
-                style={{ transform: `rotate(${(waveNum - 1) * DEGREES_PER_STEP}deg)` }}
+                className={cn(
+                  "font-semibold",
+                  ROTATION_BY_OFFSET[waveNum - 1 + 6],
+                )}
               >
                 <div className="h-[14px] w-[70px] animate-pulse rounded bg-white/20" />
               </RingContainer>
@@ -274,11 +177,8 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                   key={w.waveNum}
                   title={`Wave ${w.waveNum}`}
                   secondaryValue={`${w.soldCount.toString()} / ${w.qty.toString()}`}
-                  style={{
-                    transform: `rotate(${(w.waveNum - pivot) * DEGREES_PER_STEP + dragOffsetDeg}deg)`,
-                  }}
-                  suppressTransition={dragState.current?.isDragging}
                   className={cn(
+                    ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
                     isActive &&
                       "text-primary opacity-100 font-extrabold drop-shadow-[0_0_10px_rgba(65,175,235,0.7)]",
                     // text-gray-400 -- the same color MintForm's STATUS text
@@ -290,7 +190,6 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                     !isActive && !isDone && "text-white font-semibold",
                   )}
                   inline
-                  onClick={() => contract.setPivotWave(w.waveNum)}
                 />
               );
             })}
