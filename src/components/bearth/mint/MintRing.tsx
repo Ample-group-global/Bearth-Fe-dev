@@ -17,7 +17,13 @@ export function RingContainer({
         className,
       )}
     >
-      <div className="text-xs absolute h-[100px] top-0 left-1/2 -translate-x-1/2 text-white flex flex-col items-center justify-center">
+      {/* drop-shadow -- the background art (rocket dock-tower) sits directly
+          behind several ring positions (e.g. Wave 3/4 whenever they rotate
+          over it) and its panel-seam detail was swallowing plain white text,
+          reading as "the supply number is broken/missing" even though it was
+          rendering correctly; a dark shadow keeps every label legible no
+          matter which wave lands over the artwork. */}
+      <div className="text-xs absolute h-[100px] top-0 left-1/2 -translate-x-1/2 text-white flex flex-col items-center justify-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
         {children}
       </div>
     </div>
