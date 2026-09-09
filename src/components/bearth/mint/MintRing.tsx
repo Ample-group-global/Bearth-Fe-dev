@@ -2,7 +2,6 @@
 
 import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { cn } from "@/lib/utils";
-import { usePrivy } from "@privy-io/react-auth";
 
 export function RingContainer({
   children,
@@ -118,18 +117,19 @@ export function RingLine({ className }: { className?: string }) {
   );
 }
 
+// Fixed 7-wave collection (see ROTATION_BY_OFFSET's own comment) -- used only
+// to size the loading skeleton below, not to assume real wave data.
+const SKELETON_WAVE_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
+
 export default function MintRing({ children }: { children: React.ReactNode }) {
   // 7-wave model: the old 4-stage whitelist/public/phase2/sold-out ring math doesn't map to
   // discrete waves, so this shows a simple current-wave status card instead of a progress ring.
-  const { authenticated } = usePrivy();
   const contract = useBreathContract();
 
-  if (
-    authenticated &&
-    (contract.waves.isLoading || contract.activeWave.isLoading)
-  ) {
-    return <></>;
-  }
+  // waves.state defaults to [] before its SWR fetch resolves -- previously
+  // this rendered zero ring items with no loading indication, so every page
+  // refresh showed the wave labels vanish for ~300-500ms then pop back in.
+  const isLoadingWaves = contract.waves.isLoading || contract.activeWave.isLoading;
 
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
@@ -142,23 +142,35 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
     <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">
       <div className="relative rounded-full bg-black/50 w-full h-full flex items-center justify-center">
         {/* Ring Items -- one per wave, positioned relative to the active wave */}
-        {waveList.map((w) => {
-          const isActive = w.waveNum === pivot;
-          return (
-            <RingItem
-              key={w.waveNum}
-              title={`Wave ${w.waveNum}`}
-              secondaryValue={`${w.soldCount.toString()} / ${w.qty.toString()}`}
-              className={cn(
-                ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
-                isActive
-                  ? "opacity-100 font-extrabold drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]"
-                  : "opacity-45 font-medium",
-              )}
-              inline
-            />
-          );
-        })}
+        {isLoadingWaves
+          ? SKELETON_WAVE_NUMBERS.map((waveNum) => (
+              <RingContainer
+                key={waveNum}
+                className={cn(
+                  "font-semibold",
+                  ROTATION_BY_OFFSET[waveNum - 1 + 6],
+                )}
+              >
+                <div className="h-[14px] w-[70px] animate-pulse rounded bg-white/20" />
+              </RingContainer>
+            ))
+          : waveList.map((w) => {
+              const isActive = w.waveNum === pivot;
+              return (
+                <RingItem
+                  key={w.waveNum}
+                  title={`Wave ${w.waveNum}`}
+                  secondaryValue={`${w.soldCount.toString()} / ${w.qty.toString()}`}
+                  className={cn(
+                    ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
+                    isActive
+                      ? "opacity-100 font-extrabold drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+                      : "opacity-45 font-medium",
+                  )}
+                  inline
+                />
+              );
+            })}
 
         {/* Inner Circle */}
         <div className="rounded-full w-[1100px] h-[1100px] border-3 border-white flex items-center justify-center">

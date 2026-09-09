@@ -10,14 +10,22 @@ import {
 import { useState } from "react";
 import { BearthButton } from "@/components/bearth/BearthButton";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
+import { cn } from "@/lib/utils";
 
 function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function ConnectWalletTopBarButton() {
-  const { login, logout, authenticated, privyReady, wallet, switchWallet } =
-    useWalletConnect();
+  const {
+    login,
+    logout,
+    authenticated,
+    privyReady,
+    wallet,
+    switchWallet,
+    isSwitchingWallet,
+  } = useWalletConnect();
   const [copied, setCopied] = useState(false);
 
   // Same responsive footprint as before (desktop only -- mobile uses the
@@ -58,10 +66,13 @@ export function ConnectWalletTopBarButton() {
         <button
           type="button"
           onClick={() => switchWallet()}
+          disabled={isSwitchingWallet}
           title="Switch wallet"
-          className="flex items-center justify-center rounded-sm bg-white p-2.5 text-black hover:bg-white/80"
+          className="flex items-center justify-center rounded-sm bg-white p-2.5 text-black hover:bg-white/80 disabled:cursor-default disabled:opacity-50"
         >
-          <ArrowLeftRightIcon className="size-4" />
+          <ArrowLeftRightIcon
+            className={cn("size-4", isSwitchingWallet && "animate-spin")}
+          />
         </button>
         <button
           type="button"

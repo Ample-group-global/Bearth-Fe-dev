@@ -48,6 +48,12 @@ export function MintPageComponent({ className }: MintPageComponentProps) {
 }
 function WaveStatusBox() {
   const { activeWave, waves, waveCatalog } = useBreathContract();
+  // Neither activeWave.state being null nor waveCatalog.state being empty
+  // distinguishes "still loading" from "genuinely no wave is active" -- on a
+  // fresh page load/refresh this previously collapsed straight to "MINT NOT
+  // OPEN" for the ~300-500ms before data arrived, reading as the wave info
+  // vanishing rather than loading.
+  const isLoading = activeWave.isLoading || waveCatalog.isLoading;
   const activeWaveNum = activeWave.state;
   const activeWaveInfo = waves.state.find((w) => w.waveNum === activeWaveNum);
   const isFree = activeWaveInfo?.price === 0n;
@@ -64,27 +70,36 @@ function WaveStatusBox() {
     <div className="w-full max-w-[500px] h-[200px] absolute top-0 right-0">
       <div className="relative text-white h-full w-full">
         <div className="absolute right-0 bottom-0 pb-6 px-8 text-right font-hoss-round z-1">
-          <div className="text-[20px] lg:text-[24px] font-semibold">
-            {waveTitle}
-          </div>
-          {activeWaveInfo && (
+          {isLoading ? (
+            <div className="flex flex-col items-end gap-2">
+              <div className="h-[20px] w-[180px] animate-pulse rounded bg-white/20 lg:h-[24px]" />
+              <div className="h-[14px] w-[140px] animate-pulse rounded bg-white/20 lg:h-[20px]" />
+            </div>
+          ) : (
             <>
-              <div className="text-[14px] lg:text-[20px] font-semibold">
-                {isFree ? "FREE MINTING" : "PAID MINTING"}
+              <div className="text-[20px] lg:text-[24px] font-semibold">
+                {waveTitle}
               </div>
-              {isFree ? (
+              {activeWaveInfo && (
                 <>
-                  <div className="text-[10px] lg:text-[16px]">
-                    MINTERS ONLY NEED TO PAY THE GAS FEE
+                  <div className="text-[14px] lg:text-[20px] font-semibold">
+                    {isFree ? "FREE MINTING" : "PAID MINTING"}
                   </div>
-                  <div className="text-[10px] lg:text-[16px]">
-                    EACH WALLET CAN ONLY MINT ONE NFT
-                  </div>
+                  {isFree ? (
+                    <>
+                      <div className="text-[10px] lg:text-[16px]">
+                        MINTERS ONLY NEED TO PAY THE GAS FEE
+                      </div>
+                      <div className="text-[10px] lg:text-[16px]">
+                        EACH WALLET CAN ONLY MINT ONE NFT
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-[10px] lg:text-[16px]">
+                      {`PRICE: ${Number(activeWaveInfo.price) / 10 ** 18} ETH PER NFT`}
+                    </div>
+                  )}
                 </>
-              ) : (
-                <div className="text-[10px] lg:text-[16px]">
-                  {`PRICE: ${Number(activeWaveInfo.price) / 10 ** 18} ETH PER NFT`}
-                </div>
               )}
             </>
           )}
@@ -137,16 +152,20 @@ export function MintForm() {
           className={
             wrongNetwork
               ? "text-red-500"
-              : activeWave.state
-                ? "text-green-500"
-                : "text-gray-400"
+              : activeWave.isLoading
+                ? "text-gray-400"
+                : activeWave.state
+                  ? "text-green-500"
+                  : "text-gray-400"
           }
         >
           {wrongNetwork
             ? "WRONG NETWORK"
-            : activeWave.state
-              ? "MINT LIVE"
-              : "MINT CLOSED"}
+            : activeWave.isLoading
+              ? "LOADING..."
+              : activeWave.state
+                ? "MINT LIVE"
+                : "MINT CLOSED"}
         </div>
       </div>
     </div>

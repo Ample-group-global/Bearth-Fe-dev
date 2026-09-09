@@ -49,6 +49,9 @@ interface WalletConnectContextValue {
   // logout()+login() (extra round trip); this is Privy's dedicated in-place
   // wallet-switch flow.
   switchWallet: () => Promise<void>;
+  // True while a switchWallet() request is in flight -- lets the button
+  // disable itself instead of relying solely on the internal re-entry guard.
+  isSwitchingWallet: boolean;
 }
 
 export const WalletConnectContext = createContext<WalletConnectContextValue>({
@@ -63,6 +66,7 @@ export const WalletConnectContext = createContext<WalletConnectContextValue>({
   balance: null,
   chain: null,
   switchWallet: async () => {},
+  isSwitchingWallet: false,
 });
 
 interface WalletConnectContextProps {
@@ -118,8 +122,21 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
     return publicClient;
   }, [chain]);
 
+  // Guards against a second wallet_requestPermissions firing while MetaMask's
+  // first request is still pending -- MetaMask rejects the second call with
+  // an "already pending" RPC error rather than queueing or replacing it, and
+  // without this guard that rejection fell into the catch below and
+  // incorrectly triggered Privy's fallback reconnect on top of the still-open
+  // MetaMask popup (observed as a burst of repeated RPC errors from rapid
+  // clicks on the switch-wallet button).
+  const switchInFlightRef = useRef(false);
+  const [isSwitchingWallet, setIsSwitchingWallet] = useState(false);
+
   const switchWallet = useCallback(async () => {
     if (!wallet || wallet.type !== "ethereum") return;
+    if (switchInFlightRef.current) return;
+    switchInFlightRef.current = true;
+    setIsSwitchingWallet(true);
     try {
       const provider = await wallet.getEthereumProvider();
       // Forces MetaMask (and other injected wallets supporting EIP-2255) to
@@ -130,10 +147,18 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
         method: "wallet_requestPermissions",
         params: [{ eth_accounts: {} }],
       });
-    } catch {
-      // Wallet doesn't support wallet_requestPermissions -- fall back to
-      // Privy's own reset-and-reconnect flow.
-      await connectActiveWallet({ reset: true });
+    } catch (err) {
+      // -32002 ("already pending") means a request is already in flight --
+      // nothing to fall back to, just let it resolve on its own. Any other
+      // error (e.g. the wallet doesn't support wallet_requestPermissions at
+      // all) falls back to Privy's own reset-and-reconnect flow.
+      const code = (err as { code?: number })?.code;
+      if (code !== -32002) {
+        await connectActiveWallet({ reset: true });
+      }
+    } finally {
+      switchInFlightRef.current = false;
+      setIsSwitchingWallet(false);
     }
   }, [wallet, connectActiveWallet]);
 
@@ -159,6 +184,7 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
         balance: balance.data,
         chain,
         switchWallet,
+        isSwitchingWallet,
       }}
     >
       {children}

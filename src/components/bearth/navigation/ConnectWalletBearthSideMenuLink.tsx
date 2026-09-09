@@ -2,6 +2,7 @@
 
 import { ArrowLeftRightIcon, LogOutIcon } from "lucide-react";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
+import { cn } from "@/lib/utils";
 import { BearthSideMenuLink } from "./BearthSideMenu";
 
 function truncateAddress(address: string) {
@@ -9,8 +10,15 @@ function truncateAddress(address: string) {
 }
 
 export function ConnectWalletBearthSideMenuLink() {
-  const { login, logout, authenticated, privyReady, wallet, switchWallet } =
-    useWalletConnect();
+  const {
+    login,
+    logout,
+    authenticated,
+    privyReady,
+    wallet,
+    switchWallet,
+    isSwitchingWallet,
+  } = useWalletConnect();
 
   // Same fix as ConnectWalletTopBarButton -- avoid flashing "CONNECT" during
   // the brief window before Privy finishes rehydrating the session on load.
@@ -38,9 +46,12 @@ export function ConnectWalletBearthSideMenuLink() {
             <button
               type="button"
               onClick={() => switchWallet()}
-              className="flex items-center gap-1 text-black/70"
+              disabled={isSwitchingWallet}
+              className="flex items-center gap-1 text-black/70 disabled:opacity-50"
             >
-              <ArrowLeftRightIcon className="size-4" />
+              <ArrowLeftRightIcon
+                className={cn("size-4", isSwitchingWallet && "animate-spin")}
+              />
               SWITCH
             </button>
             <button
