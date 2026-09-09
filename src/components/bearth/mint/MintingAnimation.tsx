@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, type Hex, http } from "viem";
+import { useSWRConfig } from "swr";
 import { BearthButton } from "@/components/bearth/BearthButton";
 import MaxWidthConstraintedLayout from "@/components/bearth/MaxWidthConstraintedLayout";
 import {
@@ -49,7 +50,8 @@ export function MintingAnimation({
   const chainOption =
     chainOptions[process.env.NEXT_PUBLIC_CONTRACT_NET as "mainnet" | "sepolia"];
 
-  const { chain } = useWalletConnect();
+  const { chain, wallet } = useWalletConnect();
+  const { mutate } = useSWRConfig();
   const [tokenId, setTokenId] = useState<[string, string] | null>(null);
 
   const [videoState, setVideoState] = useState<VideoState>(VideoState.Init);
@@ -100,6 +102,15 @@ export function MintingAnimation({
         const tokenId = receipt?.logs?.[0]?.topics?.[3];
         if (receipt.to && tokenId) {
           setTokenId([receipt.to, BigInt(tokenId).toString()]);
+        }
+
+        if (receipt.status === "success" && wallet) {
+          // Marks any Memory Hall data already cached from a visit earlier
+          // in this session as stale, so navigating there after "View in
+          // Memory Hall" shows the new mint instead of the pre-mint snapshot
+          // it had cached (revalidateOnFocus is off site-wide, so nothing
+          // else would have triggered this refetch).
+          mutate(["memory-hall", wallet.address]);
         }
 
         if (receipt.status === "reverted") {
