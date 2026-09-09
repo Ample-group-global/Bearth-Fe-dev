@@ -134,9 +134,22 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
   );
-  // Falls back to wave 1 as the pivot when no wave is active (e.g. mint not open
-  // yet) so the ring still has a defined layout instead of every offset being NaN.
-  const pivot = contract.activeWave.state ?? 1;
+  // Which wave sits in the ring's center slot. Previously fell back to a
+  // hardcoded 1 whenever no wave was active -- correct before Wave 1 ever
+  // starts, but wrong once Wave 1 closes and Wave 2 hasn't opened yet: the
+  // ring kept Wave 1 centered indefinitely instead of advancing to the next
+  // upcoming wave. Now finds the first not-yet-closed, not-yet-ended wave in
+  // sequence -- covers both "nothing has started" (picks wave 1) and
+  // "current wave just ended" (picks the next one) with the same logic.
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  const nextWave = waveList.find(
+    (w) => !w.closed && (w.endTime === 0n || w.endTime > now),
+  );
+  const pivot =
+    contract.activeWave.state ??
+    nextWave?.waveNum ??
+    waveList[waveList.length - 1]?.waveNum ??
+    1;
 
   return (
     <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">
@@ -155,7 +168,13 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
               </RingContainer>
             ))
           : waveList.map((w) => {
-              const isActive = w.waveNum === pivot;
+              // Deliberately NOT `w.waveNum === pivot` -- pivot only controls
+              // ring position now (see above), so the centered wave doesn't
+              // fall back to "no wave is active" (bright/highlighted styling
+              // is what tells the customer a wave can actually be minted right
+              // now; Wave 2 sitting in the center slot before it opens should
+              // still read as muted/disabled, not falsely active).
+              const isActive = w.waveNum === contract.activeWave.state;
               return (
                 <RingItem
                   key={w.waveNum}
