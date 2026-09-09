@@ -18,6 +18,7 @@ export function ConnectWalletBearthSideMenuLink() {
     wallet,
     switchWallet,
     isSwitchingWallet,
+    linkWallet,
   } = useWalletConnect();
 
   // Same fix as ConnectWalletTopBarButton -- avoid flashing "CONNECT" during
@@ -63,6 +64,34 @@ export function ConnectWalletBearthSideMenuLink() {
               LOGOUT
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Real session, but no wallet attached (e.g. an email-only login) --
+  // login() is a Privy no-op here, which previously left this exact case
+  // stuck on a link that did nothing when tapped. linkWallet() is Privy's
+  // actual helper for attaching a wallet to an existing session.
+  if (authenticated) {
+    return (
+      <div className="leading-[50px] w-full after:content-[''] after:block after:h-px after:w-full after:bg-black/10">
+        <div className="flex items-center justify-between">
+          <BearthSideMenuLink
+            href="#"
+            className="!w-auto after:hidden"
+            onClick={() => linkWallet()}
+          >
+            CONNECT WALLET
+          </BearthSideMenuLink>
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="flex items-center gap-1 text-red-600"
+          >
+            <LogOutIcon className="size-4" />
+            LOGOUT
+          </button>
         </div>
       </div>
     );

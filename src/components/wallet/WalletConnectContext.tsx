@@ -4,6 +4,7 @@ import {
   type ConnectedWallet,
   type User,
   useActiveWallet,
+  useConnectWallet,
   usePrivy,
   useWallets,
 } from "@privy-io/react-auth";
@@ -52,6 +53,14 @@ interface WalletConnectContextValue {
   // True while a switchWallet() request is in flight -- lets the button
   // disable itself instead of relying solely on the internal re-entry guard.
   isSwitchingWallet: boolean;
+  // For the authenticated-but-no-wallet case (e.g. an email-only login with
+  // no wallet ever attached) -- calling login() again here is a Privy no-op
+  // ("Attempted to log in, but user is already logged in. Use a `link`
+  // helper instead" logged to console) that leaves the customer stuck on a
+  // CONNECT button that does nothing. This is Privy's actual "link" helper:
+  // opens the same wallet-connect modal, but for attaching a wallet to the
+  // existing session rather than starting a new one.
+  linkWallet: () => void;
 }
 
 export const WalletConnectContext = createContext<WalletConnectContextValue>({
@@ -67,6 +76,7 @@ export const WalletConnectContext = createContext<WalletConnectContextValue>({
   chain: null,
   switchWallet: async () => {},
   isSwitchingWallet: false,
+  linkWallet: () => {},
 });
 
 interface WalletConnectContextProps {
@@ -88,6 +98,7 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
   const { wallet: activeWallet, connect: connectActiveWallet } =
     useActiveWallet();
   const { wallets, ready: walletsReady } = useWallets();
+  const { connectWallet: linkWallet } = useConnectWallet();
   const wallet = activeWallet ?? wallets[0];
   const registeredAddressRef = useRef<string | null>(null);
 
@@ -185,6 +196,7 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
         chain,
         switchWallet,
         isSwitchingWallet,
+        linkWallet,
       }}
     >
       {children}

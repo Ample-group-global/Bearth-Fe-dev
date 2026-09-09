@@ -25,6 +25,7 @@ export function ConnectWalletTopBarButton() {
     wallet,
     switchWallet,
     isSwitchingWallet,
+    linkWallet,
   } = useWalletConnect();
   const [copied, setCopied] = useState(false);
 
@@ -74,6 +75,36 @@ export function ConnectWalletTopBarButton() {
             className={cn("size-4", isSwitchingWallet && "animate-spin")}
           />
         </button>
+        <button
+          type="button"
+          onClick={() => logout()}
+          title="Logout"
+          className="flex items-center justify-center rounded-sm bg-red-600 p-2.5 text-white hover:bg-red-700"
+        >
+          <LogOutIcon className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
+  // Authenticated (a real Privy session exists) but no wallet attached yet --
+  // e.g. an email-only login that never connected a wallet. login() is a
+  // no-op here (Privy logs "Attempted to log in, but user is already logged
+  // in. Use a `link` helper instead" and does nothing), which previously left
+  // this exact case stuck on a CONNECT button that did nothing when clicked.
+  // linkWallet() is Privy's actual helper for attaching a wallet to an
+  // existing session.
+  if (authenticated) {
+    return (
+      <div className="hidden md:flex absolute right-2 items-center gap-2">
+        <BearthButton
+          type="secondary"
+          onClick={() => linkWallet()}
+          data-testid="topbar-connect-button"
+        >
+          <WalletIcon className="size-4" />
+          CONNECT WALLET
+        </BearthButton>
         <button
           type="button"
           onClick={() => logout()}
