@@ -134,22 +134,11 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
   );
-  // Which wave sits in the ring's center slot. Previously fell back to a
-  // hardcoded 1 whenever no wave was active -- correct before Wave 1 ever
-  // starts, but wrong once Wave 1 closes and Wave 2 hasn't opened yet: the
-  // ring kept Wave 1 centered indefinitely instead of advancing to the next
-  // upcoming wave. Now finds the first not-yet-closed, not-yet-ended wave in
-  // sequence -- covers both "nothing has started" (picks wave 1) and
-  // "current wave just ended" (picks the next one) with the same logic.
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  const nextWave = waveList.find(
-    (w) => !w.closed && (w.endTime === 0n || w.endTime > now),
-  );
-  const pivot =
-    contract.activeWave.state ??
-    nextWave?.waveNum ??
-    waveList[waveList.length - 1]?.waveNum ??
-    1;
+  // Which wave sits in the ring's center slot -- computed once in
+  // BreathContractContext (as pivotWave) so the ring and the status box
+  // above it always agree on the same wave instead of each deriving it
+  // separately and risking drift.
+  const pivot = contract.pivotWave ?? 1;
 
   return (
     <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">

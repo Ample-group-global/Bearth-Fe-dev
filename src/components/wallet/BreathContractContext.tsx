@@ -64,6 +64,12 @@ export interface WaveInfo {
 export interface BreathContractContextValue {
   phase: SWRState<Phase>;
   activeWave: SWRState<number | null>;
+  // Which wave the ring/status box should center and describe -- the truly
+  // active wave when one is open, otherwise the next not-yet-closed,
+  // not-yet-ended wave in sequence (covers both "nothing has started yet"
+  // and "current wave just ended, next one hasn't opened"). Plain (not
+  // SWRState) since it's a synchronous derivation of `waves`, not its own fetch.
+  pivotWave: number | null;
   waves: SWRState<WaveInfo[]>;
   price: SWRState<bigint>;
   waveCatalog: SWRState<WaveCatalogEntry[]>;
@@ -83,6 +89,7 @@ export interface BreathContractContextValue {
 const defaultValue: BreathContractContextValue = {
   phase: { state: Phase.Whitelist, isLoading: true },
   activeWave: { state: null, isLoading: true },
+  pivotWave: null,
   waves: { state: [], isLoading: true },
   price: { state: BigInt(0), isLoading: true },
   waveCatalog: { state: [], isLoading: true },
@@ -274,6 +281,21 @@ export function BreathContractProvider({
     () => waves?.find((w) => w.waveNum === activeWave) ?? null,
     [waves, activeWave],
   );
+
+  // Same logic as MintRing's ring-position pivot -- kept here too so the
+  // status box can describe the same wave the ring visually centers, instead
+  // of only ever showing "MINT NOT OPEN" whenever no wave happens to be live
+  // right this second.
+  const pivotWave = useMemo(() => {
+    if (activeWave) return activeWave;
+    if (!waves?.length) return null;
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const sorted = [...waves].sort((a, b) => a.waveNum - b.waveNum);
+    const next = sorted.find(
+      (w) => !w.closed && (w.endTime === 0n || w.endTime > now),
+    );
+    return next?.waveNum ?? sorted[sorted.length - 1]?.waveNum ?? null;
+  }, [activeWave, waves]);
 
   // Wave names/sale-method labels live only in Postgres (the contract has no name
   // field) -- fetched separately via a public, no-auth BearthApi-V1 route since this
@@ -486,6 +508,7 @@ export function BreathContractProvider({
         state: activeWave,
         isLoading: wavesLoading || phaseLoading,
       },
+      pivotWave,
       waves: {
         state: waves ?? [],
         isLoading: wavesLoading || waves === undefined,
@@ -539,6 +562,7 @@ export function BreathContractProvider({
       phase,
       phaseLoading,
       activeWave,
+      pivotWave,
       waves,
       wavesLoading,
       activeWaveInfo,

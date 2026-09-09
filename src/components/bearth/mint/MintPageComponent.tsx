@@ -47,23 +47,29 @@ export function MintPageComponent({ className }: MintPageComponentProps) {
   );
 }
 function WaveStatusBox() {
-  const { activeWave, waves, waveCatalog } = useBreathContract();
+  const { activeWave, pivotWave, waves, waveCatalog } = useBreathContract();
   // Neither activeWave.state being null nor waveCatalog.state being empty
   // distinguishes "still loading" from "genuinely no wave is active" -- on a
   // fresh page load/refresh this previously collapsed straight to "MINT NOT
   // OPEN" for the ~300-500ms before data arrived, reading as the wave info
   // vanishing rather than loading.
   const isLoading = activeWave.isLoading || waveCatalog.isLoading;
-  const activeWaveNum = activeWave.state;
-  const activeWaveInfo = waves.state.find((w) => w.waveNum === activeWaveNum);
-  const isFree = activeWaveInfo?.price === 0n;
-  const activeCatalogEntry = waveCatalog.state.find(
-    (w) => w.waveNumber === activeWaveNum,
+  // Describes pivotWave (same wave the ring below centers) rather than only
+  // activeWave.state -- previously this box only ever showed real info while
+  // a wave was genuinely live, collapsing to a bare "MINT NOT OPEN" for the
+  // entire gap between waves even though the next wave's price/details are
+  // already known and worth showing as a preview.
+  const displayWaveNum = pivotWave;
+  const isLive = activeWave.state !== null && activeWave.state === pivotWave;
+  const waveInfo = waves.state.find((w) => w.waveNum === displayWaveNum);
+  const isFree = waveInfo?.price === 0n;
+  const catalogEntry = waveCatalog.state.find(
+    (w) => w.waveNumber === displayWaveNum,
   );
-  const waveTitle = activeCatalogEntry
-    ? `${waveSeriesName(activeCatalogEntry.name).toUpperCase()} WAVE ${activeWaveNum}`
-    : activeWaveNum
-      ? `WAVE ${activeWaveNum}`
+  const waveTitle = catalogEntry
+    ? `${waveSeriesName(catalogEntry.name).toUpperCase()} WAVE ${displayWaveNum}`
+    : displayWaveNum
+      ? `WAVE ${displayWaveNum}`
       : "MINT NOT OPEN";
 
   return (
@@ -80,10 +86,11 @@ function WaveStatusBox() {
               <div className="text-[20px] lg:text-[24px] font-semibold">
                 {waveTitle}
               </div>
-              {activeWaveInfo && (
+              {waveInfo && (
                 <>
                   <div className="text-[14px] lg:text-[20px] font-semibold">
                     {isFree ? "FREE MINTING" : "PAID MINTING"}
+                    {!isLive && " · COMING SOON"}
                   </div>
                   {isFree ? (
                     <>
@@ -96,7 +103,7 @@ function WaveStatusBox() {
                     </>
                   ) : (
                     <div className="text-[10px] lg:text-[16px]">
-                      {`PRICE: ${Number(activeWaveInfo.price) / 10 ** 18} ETH PER NFT`}
+                      {`PRICE: ${Number(waveInfo.price) / 10 ** 18} ETH PER NFT`}
                     </div>
                   )}
                 </>
