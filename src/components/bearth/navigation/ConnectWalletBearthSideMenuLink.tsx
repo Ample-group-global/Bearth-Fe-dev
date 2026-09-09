@@ -1,10 +1,16 @@
 "use client";
 
+import { LogOutIcon } from "lucide-react";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { BearthSideMenuLink } from "./BearthSideMenu";
 
+function truncateAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 export function ConnectWalletBearthSideMenuLink() {
-  const { login, logout, authenticated, privyReady } = useWalletConnect();
+  const { login, logout, authenticated, privyReady, wallet } =
+    useWalletConnect();
 
   // Same fix as ConnectWalletTopBarButton -- avoid flashing "CONNECT" during
   // the brief window before Privy finishes rehydrating the session on load.
@@ -21,12 +27,29 @@ export function ConnectWalletBearthSideMenuLink() {
     );
   }
 
+  if (authenticated && wallet) {
+    return (
+      <div className="leading-[50px] w-full after:content-[''] after:block after:h-px after:w-full after:bg-black/10">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-base normal-case text-black/70">
+            {truncateAddress(wallet.address)}
+          </span>
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="flex items-center gap-1 text-red-600"
+          >
+            <LogOutIcon className="size-4" />
+            LOGOUT
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <BearthSideMenuLink
-      href="#"
-      onClick={async () => (authenticated ? await logout() : login())}
-    >
-      {authenticated ? "DISCONNECT" : "CONNECT"}
+    <BearthSideMenuLink href="#" onClick={() => login()}>
+      CONNECT
     </BearthSideMenuLink>
   );
 }
