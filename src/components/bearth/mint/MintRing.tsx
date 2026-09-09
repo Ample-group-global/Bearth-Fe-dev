@@ -139,6 +139,7 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   // above it always agree on the same wave instead of each deriving it
   // separately and risking drift.
   const pivot = contract.pivotWave ?? 1;
+  const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
   return (
     <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">
@@ -164,6 +165,13 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
               // now; Wave 2 sitting in the center slot before it opens should
               // still read as muted/disabled, not falsely active).
               const isActive = w.waveNum === contract.activeWave.state;
+              // Time-based, not just w.closed -- a wave that ran out its
+              // scheduled window (like Wave 1) reads as "done" here even
+              // though the separate manual waveClosed flag is still false,
+              // matching the same time-aware logic used for pivotWave.
+              const isDone =
+                !isActive &&
+                (w.closed || (w.endTime > 0n && w.endTime <= nowSeconds));
               return (
                 <RingItem
                   key={w.waveNum}
@@ -171,9 +179,10 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                   secondaryValue={`${w.soldCount.toString()} / ${w.qty.toString()}`}
                   className={cn(
                     ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
-                    isActive
-                      ? "opacity-100 font-extrabold drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]"
-                      : "opacity-45 font-medium",
+                    isActive &&
+                      "text-primary opacity-100 font-extrabold drop-shadow-[0_0_10px_rgba(65,175,235,0.7)]",
+                    isDone && "text-white/40 font-medium",
+                    !isActive && !isDone && "text-white/90 font-semibold",
                   )}
                   inline
                 />
