@@ -123,8 +123,19 @@ function WaveStatusBox() {
 }
 
 export function MintForm() {
-  const { activeWave, pivotWave, waveCatalog } = useBreathContract();
+  const { activeWave, pivotWave, waves, waveCatalog } = useBreathContract();
   const { wrongNetwork } = useWalletConnect();
+  // Every wave closed or past its scheduled end -- distinct from "no wave
+  // active yet" (a real upcoming wave is still queued). Only this genuine
+  // end-of-collection case still reads as "MINT CLOSED"; everything else
+  // that isn't live yet is "COMING SOON" instead of the same terminal-
+  // sounding label.
+  const nowSecondsForStatus = BigInt(Math.floor(Date.now() / 1000));
+  const allWavesDone =
+    waves.state.length > 0 &&
+    waves.state.every(
+      (w) => w.closed || (w.endTime > 0n && w.endTime <= nowSecondsForStatus),
+    );
   // Live (activeWave === pivotWave): show the real wave name + "TOTAL PRICE"
   // for however many NFTs are queued to mint. Not live yet (pivotWave is
   // just the next upcoming wave): "PER NFT PRICE" instead -- qty isn't
@@ -171,7 +182,9 @@ export function MintForm() {
                 ? "text-gray-400"
                 : activeWave.state
                   ? "text-green-500"
-                  : "text-gray-400"
+                  : allWavesDone
+                    ? "text-gray-400"
+                    : "text-primary"
           }
         >
           {wrongNetwork
@@ -180,7 +193,9 @@ export function MintForm() {
               ? "LOADING..."
               : activeWave.state
                 ? "MINT LIVE"
-                : "MINT CLOSED"}
+                : allWavesDone
+                  ? "MINT CLOSED"
+                  : "COMING SOON"}
         </div>
       </div>
     </div>

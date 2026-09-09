@@ -1,21 +1,38 @@
 "use client";
 
+import { useState } from "react";
 import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { cn } from "@/lib/utils";
 
 export function RingContainer({
   children,
   className,
+  onClick,
 }: {
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
     <div
       className={cn(
         "absolute w-full h-full transition-transform duration-700 ease-out",
+        onClick && "cursor-pointer",
         className,
       )}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div className="text-xs absolute h-[100px] top-0 left-1/2 -translate-x-1/2 text-white flex flex-col items-center justify-center">
         {children}
@@ -30,6 +47,7 @@ export function RingItem({
   className,
   inline,
   secondaryValue,
+  onClick,
 }: {
   title?: string;
   value?: number | string;
@@ -40,10 +58,14 @@ export function RingItem({
   // Fills the space freed up by `inline` (previously the stacked value slot)
   // with a second stat below the dot separator -- e.g. mint progress.
   secondaryValue?: number | string;
+  // Lets a customer click any wave label to manually rotate the ring and
+  // center it, browsing all 7 waves instead of only whichever ones happen
+  // to sit near the auto-computed pivot.
+  onClick?: () => void;
 }) {
   if (inline) {
     return (
-      <RingContainer className={cn("font-semibold", className)}>
+      <RingContainer className={cn("font-semibold", className)} onClick={onClick}>
         <div className="flex items-center gap-2">
           <span>{title}</span>
           <span>{value ?? "\u00A0"}</span>
@@ -64,7 +86,7 @@ export function RingItem({
   }
 
   return (
-    <RingContainer className={cn("font-semibold", className)}>
+    <RingContainer className={cn("font-semibold", className)} onClick={onClick}>
       <div>{title}</div>
       <div className="relative flex h-[35px] my-1">
         <div className="absolute z-0 h-[35px] left-1/2 -translate-x-1/2 top-0 w-[2px] bg-white"></div>
@@ -134,11 +156,15 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
   );
-  // Which wave sits in the ring's center slot -- computed once in
+  // Which wave sits in the ring's center slot -- normally computed in
   // BreathContractContext (as pivotWave) so the ring and the status box
-  // above it always agree on the same wave instead of each deriving it
-  // separately and risking drift.
-  const pivot = contract.pivotWave ?? 1;
+  // above it agree on the same wave, but a customer can click any wave
+  // label to manually override it and browse the other 6 waves' prices.
+  // The ring's existing transition-transform (700ms ease-out on
+  // RingContainer) already animates this rotation smoothly, no separate
+  // rotation-speed logic needed.
+  const [manualPivot, setManualPivot] = useState<number | null>(null);
+  const pivot = manualPivot ?? contract.pivotWave ?? 1;
   const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
   return (
@@ -190,6 +216,7 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                     !isActive && !isDone && "text-white font-semibold",
                   )}
                   inline
+                  onClick={() => setManualPivot(w.waveNum)}
                 />
               );
             })}
