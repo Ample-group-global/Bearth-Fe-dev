@@ -123,14 +123,22 @@ function WaveStatusBox() {
 }
 
 export function MintForm() {
-  const { activeWave, waveCatalog } = useBreathContract();
+  const { activeWave, pivotWave, waveCatalog } = useBreathContract();
   const { wrongNetwork } = useWalletConnect();
-  const activeWaveCatalog = waveCatalog.state.find(
-    (w) => w.waveNumber === activeWave.state,
+  // Live (activeWave === pivotWave): show the real wave name + "TOTAL PRICE"
+  // for however many NFTs are queued to mint. Not live yet (pivotWave is
+  // just the next upcoming wave): "PER NFT PRICE" instead -- qty isn't
+  // meaningful for a wave that isn't open, so labeling it "total" would
+  // misleadingly imply a computed total the customer can't actually pay yet.
+  const isLive = activeWave.state !== null && activeWave.state === pivotWave;
+  const pivotCatalogEntry = waveCatalog.state.find(
+    (w) => w.waveNumber === pivotWave,
   );
-  const priceLabel = activeWaveCatalog
-    ? `${waveSeriesName(activeWaveCatalog.name).toUpperCase()} WAVE ${activeWaveCatalog.waveNumber} PRICE`
-    : "TOTAL PRICE";
+  const priceLabel = isLive
+    ? pivotCatalogEntry
+      ? `${waveSeriesName(pivotCatalogEntry.name).toUpperCase()} WAVE ${pivotCatalogEntry.waveNumber} PRICE`
+      : "TOTAL PRICE"
+    : "PER NFT PRICE";
 
   return (
     <div className="h-full grid grid-cols-3 grid-rows-2 text-center z-10">

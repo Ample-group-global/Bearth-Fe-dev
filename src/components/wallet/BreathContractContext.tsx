@@ -297,6 +297,11 @@ export function BreathContractProvider({
     return next?.waveNum ?? sorted[sorted.length - 1]?.waveNum ?? null;
   }, [activeWave, waves]);
 
+  const pivotWaveInfo = useMemo(
+    () => waves?.find((w) => w.waveNum === pivotWave) ?? null,
+    [waves, pivotWave],
+  );
+
   // Wave names/sale-method labels live only in Postgres (the contract has no name
   // field) -- fetched separately via a public, no-auth BearthApi-V1 route since this
   // is independent of wallet/contract state.
@@ -513,8 +518,11 @@ export function BreathContractProvider({
         state: waves ?? [],
         isLoading: wavesLoading || waves === undefined,
       },
+      // Sourced from pivotWave, not activeWave, so this still shows the next
+      // wave's real price as a preview during the gap between waves instead
+      // of always falling back to 0/"Free" whenever nothing is live yet.
       price: {
-        state: activeWaveInfo?.price ?? BigInt(0),
+        state: pivotWaveInfo?.price ?? BigInt(0),
         isLoading: wavesLoading,
       },
       waveCatalog: {
@@ -563,6 +571,7 @@ export function BreathContractProvider({
       phaseLoading,
       activeWave,
       pivotWave,
+      pivotWaveInfo,
       waves,
       wavesLoading,
       activeWaveInfo,
