@@ -19,7 +19,12 @@ export function WalletConnectControl({
 
   if (!wallet || !authenticated) {
     return (
-      <BearthButton href="#" type="secondary" onClick={() => login()}>
+      <BearthButton
+        href="#"
+        type="secondary"
+        onClick={() => login()}
+        data-testid="ring-connect-wallet-button"
+      >
         Connect Wallet
       </BearthButton>
     );

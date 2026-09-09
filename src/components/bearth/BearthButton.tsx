@@ -13,6 +13,7 @@ export function BearthButton({
   onClick,
   target,
   disabled,
+  "data-testid": dataTestId,
 }: {
   children: React.ReactNode;
   href?: string;
@@ -21,6 +22,7 @@ export function BearthButton({
   onClick?: () => void;
   target?: string;
   disabled?: boolean;
+  "data-testid"?: string;
 }) {
   return createElement(
     href
@@ -33,6 +35,7 @@ export function BearthButton({
         },
     <Button
       onClick={onClick}
+      data-testid={dataTestId}
       className={cn(
         "px-4 py-2 rounded-sm font-figtree uppercase hover:brightness-105",
         type === "primary" && "bg-accent text-accent-foreground",

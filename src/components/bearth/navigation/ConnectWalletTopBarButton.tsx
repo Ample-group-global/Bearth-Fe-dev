@@ -88,7 +88,11 @@ export function ConnectWalletTopBarButton() {
 
   return (
     <div className="hidden md:flex absolute right-2">
-      <BearthButton type="secondary" onClick={() => login()}>
+      <BearthButton
+        type="secondary"
+        onClick={() => login()}
+        data-testid="topbar-connect-button"
+      >
         <WalletIcon className="size-4" />
         CONNECT
       </BearthButton>

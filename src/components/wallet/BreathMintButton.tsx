@@ -59,6 +59,7 @@ export function BreathMintButton() {
         }}
         className="h-[35px]"
         type="secondary"
+        data-testid="mint-button"
       >
         {isPending ? "Minting..." : "Mint"}
       </BearthButton>
