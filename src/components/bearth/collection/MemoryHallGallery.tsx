@@ -90,9 +90,24 @@ export default function MemoryHallGallery() {
   }
 
   if (isLoading) {
+    // Matches the real grid + card layout below exactly (same classes) so
+    // nothing shifts or resizes once actual data arrives -- a bare spinner in
+    // an otherwise-empty page read as a jarring stall rather than a gallery
+    // already in the middle of loading.
     return (
-      <div className="flex justify-center py-16 sm:py-24">
-        <div className="size-10 animate-spin rounded-full border-2 border-white/30 border-t-primary" />
+      <div className="grid grid-cols-2 gap-3 py-8 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div
+            key={i}
+            className="flex flex-col overflow-hidden rounded-2xl border border-secondary/10 bg-white shadow-[0_2px_10px_rgba(36,49,95,0.08)]"
+          >
+            <div className="aspect-square w-full animate-pulse bg-secondary/10" />
+            <div className="flex flex-col gap-1.5 p-3">
+              <div className="h-3.5 w-16 animate-pulse rounded bg-secondary/10" />
+              <div className="h-3 w-24 animate-pulse rounded bg-secondary/10" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
