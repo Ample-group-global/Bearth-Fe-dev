@@ -248,7 +248,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: hoss-round, sans-serif;
+    font-family: var(--font-hoss-round), sans-serif;
   }
 
   html {
