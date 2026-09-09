@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckIcon, CopyIcon, LogOutIcon, WalletIcon } from "lucide-react";
+import {
+  ArrowLeftRightIcon,
+  CheckIcon,
+  CopyIcon,
+  LogOutIcon,
+  WalletIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { BearthButton } from "@/components/bearth/BearthButton";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
@@ -10,7 +16,7 @@ function truncateAddress(address: string) {
 }
 
 export function ConnectWalletTopBarButton() {
-  const { login, logout, authenticated, privyReady, wallet } =
+  const { login, logout, authenticated, privyReady, wallet, switchWallet } =
     useWalletConnect();
   const [copied, setCopied] = useState(false);
 
@@ -48,6 +54,14 @@ export function ConnectWalletTopBarButton() {
           ) : (
             <CopyIcon className="size-3.5" />
           )}
+        </button>
+        <button
+          type="button"
+          onClick={() => switchWallet()}
+          title="Switch wallet"
+          className="flex items-center justify-center rounded-sm bg-white p-2.5 text-black hover:bg-white/80"
+        >
+          <ArrowLeftRightIcon className="size-4" />
         </button>
         <button
           type="button"

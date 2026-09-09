@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon } from "lucide-react";
+import { ArrowLeftRightIcon, LogOutIcon } from "lucide-react";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { BearthSideMenuLink } from "./BearthSideMenu";
 
@@ -9,7 +9,7 @@ function truncateAddress(address: string) {
 }
 
 export function ConnectWalletBearthSideMenuLink() {
-  const { login, logout, authenticated, privyReady, wallet } =
+  const { login, logout, authenticated, privyReady, wallet, switchWallet } =
     useWalletConnect();
 
   // Same fix as ConnectWalletTopBarButton -- avoid flashing "CONNECT" during
@@ -34,14 +34,24 @@ export function ConnectWalletBearthSideMenuLink() {
           <span className="font-mono text-base normal-case text-black/70">
             {truncateAddress(wallet.address)}
           </span>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="flex items-center gap-1 text-red-600"
-          >
-            <LogOutIcon className="size-4" />
-            LOGOUT
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => switchWallet()}
+              className="flex items-center gap-1 text-black/70"
+            >
+              <ArrowLeftRightIcon className="size-4" />
+              SWITCH
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="flex items-center gap-1 text-red-600"
+            >
+              <LogOutIcon className="size-4" />
+              LOGOUT
+            </button>
+          </div>
         </div>
       </div>
     );

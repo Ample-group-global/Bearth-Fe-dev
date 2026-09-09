@@ -9,6 +9,7 @@ import {
 } from "@privy-io/react-auth";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -43,6 +44,11 @@ interface WalletConnectContextValue {
   wrongNetwork: boolean;
   balance?: string | null;
   chain?: (typeof chains)[keyof typeof chains] | null;
+  // Prompts the connected user to pick a different external wallet, replacing
+  // the currently active one -- distinct from login() (full auth flow) and
+  // logout()+login() (extra round trip); this is Privy's dedicated in-place
+  // wallet-switch flow.
+  switchWallet: () => Promise<void>;
 }
 
 export const WalletConnectContext = createContext<WalletConnectContextValue>({
@@ -56,6 +62,7 @@ export const WalletConnectContext = createContext<WalletConnectContextValue>({
   wrongNetwork: false,
   balance: null,
   chain: null,
+  switchWallet: async () => {},
 });
 
 interface WalletConnectContextProps {
@@ -74,7 +81,8 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
   // `ready` flag, so falling back to it here means the app treats a wallet as
   // usable as soon as it's genuinely connected, not only once Privy has also
   // finished picking an "active" one.
-  const { wallet: activeWallet } = useActiveWallet();
+  const { wallet: activeWallet, connect: connectActiveWallet } =
+    useActiveWallet();
   const { wallets, ready: walletsReady } = useWallets();
   const wallet = activeWallet ?? wallets[0];
   const registeredAddressRef = useRef<string | null>(null);
@@ -110,6 +118,25 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
     return publicClient;
   }, [chain]);
 
+  const switchWallet = useCallback(async () => {
+    if (!wallet || wallet.type !== "ethereum") return;
+    try {
+      const provider = await wallet.getEthereumProvider();
+      // Forces MetaMask (and other injected wallets supporting EIP-2255) to
+      // re-show its account picker -- a plain reconnect silently reuses the
+      // already-granted authorization instead of letting the user pick a
+      // different account.
+      await provider.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+    } catch {
+      // Wallet doesn't support wallet_requestPermissions -- fall back to
+      // Privy's own reset-and-reconnect flow.
+      await connectActiveWallet({ reset: true });
+    }
+  }, [wallet, connectActiveWallet]);
+
   const balance = useSWR(wallet ? [wallet.address] : null, async () => {
     if (!authenticated || !wallet) return null;
     const balance = await publicClient.getBalance({
@@ -131,6 +158,7 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
         walletsReady,
         balance: balance.data,
         chain,
+        switchWallet,
       }}
     >
       {children}
