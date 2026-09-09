@@ -178,13 +178,17 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
               const isDone =
                 !isActive &&
                 (w.closed || (w.endTime > 0n && w.endTime <= nowSeconds));
-              // Supply count shows for the centered wave (pivot is already
-              // "the active wave, or else the next upcoming one" -- see
-              // BreathContractContext -- so this one check covers both
+              // Real supply count shows for the centered wave (pivot is
+              // already "the active wave, or else the next upcoming one" --
+              // see BreathContractContext -- so this one check covers both
               // "active" and "centered" without them ever disagreeing) and
               // for any already-closed wave (a real historical result, not a
-              // premature reveal). Only genuinely future, not-yet-centered
-              // waves hide their count, showing just the title.
+              // premature reveal). Genuinely future, not-yet-centered waves
+              // show a "0" placeholder instead of the real count -- NOT
+              // `undefined` (that drops secondaryValue's dot-separator + line
+              // entirely, making those items visibly shorter than the rest
+              // of the ring; keeping the same two-line layout for every wave
+              // was explicitly requested).
               const isPivot = w.waveNum === pivot;
               const showSupply = isPivot || isDone;
               return (
@@ -194,7 +198,7 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                   secondaryValue={
                     showSupply
                       ? `${w.soldCount.toString()} / ${w.qty.toString()}`
-                      : undefined
+                      : "0"
                   }
                   className={cn(
                     ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
