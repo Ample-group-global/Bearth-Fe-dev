@@ -181,8 +181,13 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                     ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
                     isActive &&
                       "text-primary opacity-100 font-extrabold drop-shadow-[0_0_10px_rgba(65,175,235,0.7)]",
-                    isDone && "text-white/40 font-medium",
-                    !isActive && !isDone && "text-white/90 font-semibold",
+                    // text-gray-400 -- the same color MintForm's STATUS text
+                    // already uses for "MINT CLOSED" elsewhere on this page,
+                    // reused here rather than a varying-opacity white so
+                    // closed/upcoming/live genuinely read as three different
+                    // colors, not three shades of the same white.
+                    isDone && "text-gray-400 font-medium",
+                    !isActive && !isDone && "text-white font-semibold",
                   )}
                   inline
                 />
