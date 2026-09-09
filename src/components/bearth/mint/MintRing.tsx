@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { cn } from "@/lib/utils";
 
@@ -156,15 +155,14 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
   );
-  // Which wave sits in the ring's center slot -- normally computed in
-  // BreathContractContext (as pivotWave) so the ring and the status box
-  // above it agree on the same wave, but a customer can click any wave
-  // label to manually override it and browse the other 6 waves' prices.
-  // The ring's existing transition-transform (700ms ease-out on
-  // RingContainer) already animates this rotation smoothly, no separate
-  // rotation-speed logic needed.
-  const [manualPivot, setManualPivot] = useState<number | null>(null);
-  const pivot = manualPivot ?? contract.pivotWave ?? 1;
+  // pivotWave/setPivotWave live in BreathContractContext (not local state
+  // here) so a click updates the SAME value the status box and price fields
+  // read -- clicking Wave 7 previously only rotated the ring's own local
+  // state, visually centering it while the price/status box kept describing
+  // whichever wave was auto-computed as active/next. The ring's existing
+  // transition-transform (700ms ease-out on RingContainer) already animates
+  // this rotation smoothly, no separate rotation-speed logic needed.
+  const pivot = contract.pivotWave ?? 1;
   const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
   return (
@@ -216,7 +214,7 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                     !isActive && !isDone && "text-white font-semibold",
                   )}
                   inline
-                  onClick={() => setManualPivot(w.waveNum)}
+                  onClick={() => contract.setPivotWave(w.waveNum)}
                 />
               );
             })}

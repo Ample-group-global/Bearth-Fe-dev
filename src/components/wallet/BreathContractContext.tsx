@@ -70,6 +70,9 @@ export interface BreathContractContextValue {
   // and "current wave just ended, next one hasn't opened"). Plain (not
   // SWRState) since it's a synchronous derivation of `waves`, not its own fetch.
   pivotWave: number | null;
+  // Lets a customer click a wave in the ring to browse it -- overrides
+  // pivotWave until cleared (pass null to go back to auto-computed).
+  setPivotWave: (waveNum: number | null) => void;
   waves: SWRState<WaveInfo[]>;
   price: SWRState<bigint>;
   waveCatalog: SWRState<WaveCatalogEntry[]>;
@@ -90,6 +93,7 @@ const defaultValue: BreathContractContextValue = {
   phase: { state: Phase.Whitelist, isLoading: true },
   activeWave: { state: null, isLoading: true },
   pivotWave: null,
+  setPivotWave: () => {},
   waves: { state: [], isLoading: true },
   price: { state: BigInt(0), isLoading: true },
   waveCatalog: { state: [], isLoading: true },
@@ -282,11 +286,9 @@ export function BreathContractProvider({
     [waves, activeWave],
   );
 
-  // Same logic as MintRing's ring-position pivot -- kept here too so the
-  // status box can describe the same wave the ring visually centers, instead
-  // of only ever showing "MINT NOT OPEN" whenever no wave happens to be live
-  // right this second.
-  const pivotWave = useMemo(() => {
+  // Auto-computed pivot: the truly active wave if one exists, otherwise the
+  // next not-yet-closed, not-yet-ended wave in sequence.
+  const autoPivotWave = useMemo(() => {
     if (activeWave) return activeWave;
     if (!waves?.length) return null;
     const now = BigInt(Math.floor(Date.now() / 1000));
@@ -296,6 +298,15 @@ export function BreathContractProvider({
     );
     return next?.waveNum ?? sorted[sorted.length - 1]?.waveNum ?? null;
   }, [activeWave, waves]);
+
+  // A customer clicking a wave in the ring (see MintRing) overrides this via
+  // setPivotWave, so the ring's visual position and everything that DESCRIBES
+  // the pivot wave (status box, price, labels) all agree on the same wave --
+  // previously the ring tracked a click in its own local state while every
+  // other consumer kept reading the auto-computed value, so clicking Wave 7
+  // visually centered it while the price/status box still described Wave 2.
+  const [manualPivotWave, setPivotWave] = useState<number | null>(null);
+  const pivotWave = manualPivotWave ?? autoPivotWave;
 
   const pivotWaveInfo = useMemo(
     () => waves?.find((w) => w.waveNum === pivotWave) ?? null,
@@ -514,6 +525,7 @@ export function BreathContractProvider({
         isLoading: wavesLoading || phaseLoading,
       },
       pivotWave,
+      setPivotWave,
       waves: {
         state: waves ?? [],
         isLoading: wavesLoading || waves === undefined,
@@ -571,6 +583,7 @@ export function BreathContractProvider({
       phaseLoading,
       activeWave,
       pivotWave,
+      setPivotWave,
       pivotWaveInfo,
       waves,
       wavesLoading,
