@@ -414,7 +414,7 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div className="grid sm:h-[min(85vh,42rem)] sm:grid-cols-2">
+        <div className="grid sm:grid-cols-2">
           <div className="relative aspect-square w-full overflow-hidden bg-secondary/5 sm:aspect-auto">
             {imageUrl ? (
               <>
@@ -454,42 +454,47 @@ function NftDetailModal({
             )}
           </div>
 
-          {/* Header and footer are fixed; only the attributes list scrolls --
-              previously the footer (address + OpenSea) lived inside the same
-              overflow-y-auto block as the attributes grid, so on a token with
-              enough traits to fill max-h-[80vh] it sat past the fold, half
-              -clipped by the modal's own rounded corner instead of just
-              being reachable by scrolling past a visible partial row. */}
-          <div className="flex min-h-0 flex-col">
-            <div
-              className="relative shrink-0 overflow-hidden p-5 pb-4 sm:p-6 sm:pb-4"
-              style={{
-                background: `radial-gradient(120% 100% at 0% 0%, ${tier.glowColor}, transparent 60%)`,
-              }}
+          {/* One continuous body -- no internal scroll region and no
+              separately-boxed footer. An earlier version split this into a
+              fixed header/scrolling-middle/fixed-footer to keep the address
+              + OpenSea row from being clipped by the modal's rounded corner,
+              but that traded one problem for two others: a nested scrollbar
+              inside the panel, and the footer reading as its own bordered
+              section instead of part of the reveal. Letting content flow
+              naturally means the row height (and the image next to it,
+              which has no intrinsic height of its own since it's an
+              absolutely-positioned `fill` image) grows to fit everything;
+              if the whole modal ever exceeds the viewport, the backdrop's
+              own overflow-y-auto scrolls the page the same way any tall
+              modal would, rather than a scrollbar living inside the card. */}
+          <div
+            className="relative overflow-hidden p-5 pb-6 sm:p-6"
+            style={{
+              background: `radial-gradient(120% 60% at 0% 0%, ${tier.glowColor}, transparent 60%)`,
+            }}
+          >
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                tier.chip,
+              )}
             >
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                  tier.chip,
-                )}
-              >
-                <SparklesIcon className="size-3" />
-                {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
-              </span>
-              <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-secondary sm:text-[1.75rem]">
-                Bearth #{nft.tokenId}
-              </h2>
-              <p className="text-sm text-secondary/60">
-                {waveEntry
-                  ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
-                  : nft.waveNumber !== null
-                    ? `Wave ${nft.waveNumber}`
-                    : null}
-                {isFreeWave !== undefined && (isFreeWave ? " · Free mint" : " · Paid mint")}
-              </p>
-            </div>
+              <SparklesIcon className="size-3" />
+              {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
+            </span>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-secondary sm:text-[1.75rem]">
+              Bearth #{nft.tokenId}
+            </h2>
+            <p className="text-sm text-secondary/60">
+              {waveEntry
+                ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
+                : nft.waveNumber !== null
+                  ? `Wave ${nft.waveNumber}`
+                  : null}
+              {isFreeWave !== undefined && (isFreeWave ? " · Free mint" : " · Paid mint")}
+            </p>
 
-            <div className="hall-scroll min-h-0 flex-1 overflow-y-auto px-5 sm:px-6">
+            <div className="mt-3">
               {nft.isRevealed && (nft.rarityRank !== null || nft.rarityScore !== null) && (
                 <div className="grid grid-cols-2 gap-2">
                   {nft.rarityRank !== null && (
@@ -526,7 +531,7 @@ function NftDetailModal({
               )}
 
               {nft.isRevealed && traitEntries.length > 0 && (
-                <div className="mt-3 pb-4">
+                <div className="mt-3">
                   <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-secondary/45">
                     Attributes
                   </p>
@@ -549,7 +554,7 @@ function NftDetailModal({
               )}
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-secondary/10 p-5 pt-3 sm:p-6 sm:pt-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
               <CopyableAddress address={nft.ownerAddress} />
               {CONTRACT_ADDRESS && (
                 <a
@@ -593,23 +598,6 @@ function NftDetailModal({
             transparent 60%
           );
           animation: revealSheen 1.1s 0.15s ease-out both;
-        }
-        .hall-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(36, 49, 95, 0.2) transparent;
-        }
-        .hall-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-        .hall-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .hall-scroll::-webkit-scrollbar-thumb {
-          background-color: rgba(36, 49, 95, 0.18);
-          border-radius: 999px;
-        }
-        .hall-scroll::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(36, 49, 95, 0.32);
         }
         @media (prefers-reduced-motion: reduce) {
           .reveal-sheen {
