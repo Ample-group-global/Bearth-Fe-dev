@@ -376,7 +376,7 @@ function NftDetailModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative m-auto w-full max-w-sm overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
@@ -390,10 +390,7 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div
-          className="relative mx-auto aspect-square overflow-hidden bg-secondary/5"
-          style={{ width: "min(100%, 34vh)" }}
-        >
+        <div className="relative aspect-square w-full overflow-hidden bg-secondary/5">
           {imageUrl ? (
             <>
               <Image
@@ -493,8 +490,23 @@ function NftDetailModal({
               </div>
             )}
 
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <CopyableAddress address={nft.ownerAddress} />
+              {CONTRACT_ADDRESS && (
+                <a
+                  href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
+                >
+                  View on OpenSea
+                  <ExternalLinkIcon className="size-3" />
+                </a>
+              )}
+            </div>
+
             {nft.isRevealed && traitEntries.length > 0 && (
-              <div className="mt-2">
+              <div className="mt-3">
                 <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-secondary/45">
                   Attributes
                 </p>
@@ -514,21 +526,6 @@ function NftDetailModal({
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <CopyableAddress address={nft.ownerAddress} />
-            {CONTRACT_ADDRESS && (
-              <a
-                href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
-              >
-                View on OpenSea
-                <ExternalLinkIcon className="size-3" />
-              </a>
             )}
           </div>
         </div>
