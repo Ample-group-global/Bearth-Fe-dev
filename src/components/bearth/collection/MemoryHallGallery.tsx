@@ -243,7 +243,7 @@ function NftCard({
             alt={`Bearth #${nft.tokenId}`}
             fill
             unoptimized
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="animate-in fade-in object-cover duration-500 transition-transform group-hover:scale-105"
           />
         ) : nft.blindBoxVideoUrl ? (
           <video
@@ -253,7 +253,7 @@ function NftCard({
             loop
             muted
             playsInline
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="animate-in fade-in h-full w-full object-cover duration-500 transition-transform group-hover:scale-105"
           />
         ) : nft.blindBoxImageUrl ? (
           <Image
@@ -261,7 +261,7 @@ function NftCard({
             alt="Sealed Bearth"
             fill
             unoptimized
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="animate-in fade-in object-cover duration-500 transition-transform group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-white/50">
@@ -379,7 +379,7 @@ function NftDetailModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative m-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-[clamp(18rem,calc(100vh-27rem),22rem)] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
