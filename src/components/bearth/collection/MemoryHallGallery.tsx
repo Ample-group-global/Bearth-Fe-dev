@@ -400,7 +400,17 @@ function NftDetailModal({
           // White card matches NftCard's established look (white tiles on
           // the navy page background) -- a dark panel here read as a
           // mismatched, unpolished detour from that language.
-          "relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          //
+          // Single column, not side-by-side: the artwork is square but the
+          // info column's natural height varies with trait count, so a
+          // two-column split forced a choice between cropping the artwork
+          // (object-cover stretched to match a taller-than-square column)
+          // or letterboxing it (object-contain, leaving bare bands top/
+          // bottom and an inconsistent-looking side gap). Stacking the
+          // image as its own true aspect-square tile above the info removes
+          // the mismatch entirely -- object-cover now crops nothing because
+          // the box IS square -- and lets the modal itself be narrower.
+          "relative w-full max-w-lg overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
@@ -414,67 +424,55 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div className="grid sm:grid-cols-2">
-          <div className="relative aspect-square w-full min-h-[280px] overflow-hidden bg-secondary/5 sm:aspect-auto sm:min-h-[420px]">
-            {imageUrl ? (
-              <>
-                {/* object-contain, not object-cover -- the artwork is
-                    square but this column isn't (it matches whatever height
-                    the attributes column needs), so object-cover was
-                    zooming in and cropping off the top of the hat and the
-                    feet to fill a taller-than-square box. Contain always
-                    shows the complete piece, letterboxed on the container's
-                    neutral background instead of cut off. */}
-                <Image
-                  src={imageUrl}
-                  alt={`Bearth #${nft.tokenId}`}
-                  fill
-                  unoptimized
-                  className="object-contain"
-                />
-                {/* One-shot diagonal sheen on open -- the "wow" beat for a
-                    reveal that's otherwise just a static image swap. */}
-                <div className="reveal-sheen pointer-events-none absolute inset-0" />
-              </>
-            ) : nft.blindBoxVideoUrl ? (
-              <video
-                src={nft.blindBoxVideoUrl}
-                poster={nft.blindBoxImageUrl ?? undefined}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="h-full w-full object-contain"
-              />
-            ) : nft.blindBoxImageUrl ? (
+        <div className="relative aspect-square w-full overflow-hidden bg-secondary/5">
+          {imageUrl ? (
+            <>
               <Image
-                src={nft.blindBoxImageUrl}
-                alt="Sealed Bearth"
+                src={imageUrl}
+                alt={`Bearth #${nft.tokenId}`}
                 fill
                 unoptimized
-                className="object-contain"
+                className="object-cover"
               />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-secondary/40">
-                Blind Box
-              </div>
-            )}
-          </div>
+              {/* One-shot diagonal sheen on open -- the "wow" beat for a
+                  reveal that's otherwise just a static image swap. */}
+              <div className="reveal-sheen pointer-events-none absolute inset-0" />
+            </>
+          ) : nft.blindBoxVideoUrl ? (
+            <video
+              src={nft.blindBoxVideoUrl}
+              poster={nft.blindBoxImageUrl ?? undefined}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : nft.blindBoxImageUrl ? (
+            <Image
+              src={nft.blindBoxImageUrl}
+              alt="Sealed Bearth"
+              fill
+              unoptimized
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-secondary/40">
+              Blind Box
+            </div>
+          )}
+        </div>
 
-          {/* One continuous body -- no internal scroll region and no
-              separately-boxed footer. An earlier version split this into a
-              fixed header/scrolling-middle/fixed-footer to keep the address
-              + OpenSea row from being clipped by the modal's rounded corner,
-              but that traded one problem for two others: a nested scrollbar
-              inside the panel, and the footer reading as its own bordered
-              section instead of part of the reveal. Letting content flow
-              naturally means the row height (and the image next to it,
-              which has no intrinsic height of its own since it's an
-              absolutely-positioned `fill` image) grows to fit everything;
-              if the whole modal ever exceeds the viewport, the backdrop's
-              own overflow-y-auto scrolls the page the same way any tall
-              modal would, rather than a scrollbar living inside the card. */}
-          <div
+        {/* One continuous body below the image -- no internal scroll region
+            and no separately-boxed footer. An earlier version kept the
+            address + OpenSea row in a bordered footer to stop it being
+            clipped by the modal's rounded corner, but that read as its own
+            disconnected section instead of part of the reveal. Letting
+            content flow naturally means the card simply grows to fit
+            everything; if it ever exceeds the viewport, the backdrop's own
+            overflow-y-auto scrolls the page rather than a scrollbar living
+            inside the card. */}
+        <div
             className="relative overflow-hidden p-5 pb-6 sm:p-6"
             style={{
               background: `radial-gradient(120% 60% at 0% 0%, ${tier.glowColor}, transparent 60%)`,
@@ -577,7 +575,6 @@ function NftDetailModal({
             </div>
           </div>
         </div>
-      </div>
       <style jsx global>{`
         @keyframes modalIn {
           from {
