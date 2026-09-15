@@ -183,14 +183,11 @@ export default function MemoryHallGallery() {
     return (
       <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 animate-in fade-in duration-300">
         {Array.from({ length: 8 }, (_, i) => (
-          <div
-            key={i}
-            className="flex flex-col overflow-hidden rounded-2xl border border-secondary/10 bg-white shadow-[0_2px_10px_rgba(36,49,95,0.08)]"
-          >
-            <div className="aspect-square w-full animate-pulse bg-secondary/10" />
-            <div className="flex flex-col gap-1.5 p-3">
-              <div className="h-3.5 w-16 animate-pulse rounded bg-secondary/10" />
-              <div className="h-3 w-24 animate-pulse rounded bg-secondary/10" />
+          <div key={i} className="flex flex-col">
+            <div className="aspect-square w-full animate-pulse rounded-2xl bg-white/10 ring-1 ring-white/10" />
+            <div className="flex flex-col gap-1.5 pt-2.5">
+              <div className="h-3.5 w-16 animate-pulse rounded bg-white/10" />
+              <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
             </div>
           </div>
         ))}
@@ -273,9 +270,9 @@ function NftCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onOpen();
       }}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-secondary/10 bg-white shadow-[0_2px_10px_rgba(36,49,95,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(36,49,95,0.16)]"
+      className="group flex cursor-pointer flex-col transition-transform duration-300 hover:-translate-y-1"
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-secondary ring-1 ring-white/10 transition-shadow duration-300 group-hover:shadow-[0_10px_30px_rgba(65,175,235,0.3)] group-hover:ring-white/20">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -318,20 +315,20 @@ function NftCard({
           {nft.isRevealed ? "Revealed" : "Blind Box"}
         </span>
       </div>
-      <div className="flex flex-col gap-1 p-2.5">
+      <div className="flex flex-col gap-1 pt-2.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-bold text-secondary">
+          <span className="text-sm font-bold text-white">
             Bearth #{nft.tokenId}
           </span>
           {nft.rarityTier && (
-            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80 ring-1 ring-white/15">
               {nft.rarityTier}
             </span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {nft.waveNumber !== null && (
-            <span className="text-xs font-medium text-secondary/70">
+            <span className="text-xs font-medium text-white/60">
               {waveEntry
                 ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
                 : `Wave ${nft.waveNumber}`}
@@ -342,15 +339,15 @@ function NftCard({
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
                 isFreeWave
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-secondary/10 text-secondary",
+                  ? "bg-emerald-400/15 text-emerald-300"
+                  : "bg-white/10 text-white/70",
               )}
             >
               {isFreeWave ? "Free" : "Paid"}
             </span>
           )}
           {nft.rarityRank !== null && (
-            <span className="text-xs text-secondary/60">
+            <span className="text-xs text-white/50">
               Rank #{nft.rarityRank}
             </span>
           )}
@@ -365,7 +362,7 @@ function NftCard({
           className="flex items-center justify-between gap-2 pt-0.5"
           onClick={(e) => e.stopPropagation()}
         >
-          <CopyableAddress address={nft.ownerAddress} />
+          <CopyableAddress address={nft.ownerAddress} light />
           {CONTRACT_ADDRESS && (
             <a
               href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
