@@ -3,14 +3,24 @@
 import Image from "next/image";
 import { useState } from "react";
 import useSWR from "swr";
-import { CheckIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+} from "lucide-react";
 import { BearthButton } from "@/components/bearth/BearthButton";
 import { chainOptions } from "@/components/wallet/chains";
 import { cn } from "@/lib/utils";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
-import { getOwnedNfts } from "@/lib/memory-hall";
-import { getWaveCatalog } from "@/lib/wave-catalog";
+import { getOwnedNfts, type MemoryHallNft } from "@/lib/memory-hall";
+import { getWaveCatalog, type WaveCatalogEntry } from "@/lib/wave-catalog";
 import { waveSeriesName } from "@/lib/wave-display";
+
+// Rarity Rank/Tier/Score already have their own dedicated badge line on the
+// card -- the traits blob also carries them as ordinary attributes, which
+// duplicated all three as trait tiles again further down the same card.
+const RARITY_TRAIT_KEYS = new Set(["Rarity Rank", "Rarity Tier", "Rarity Score"]);
 
 const IPFS_GATEWAY = "https://amgbearth.myfilebase.com/ipfs/";
 // Same helper the mint-success screen uses -- on Sepolia this correctly
@@ -138,131 +148,160 @@ export default function MemoryHallGallery() {
 
   return (
     <div className="grid grid-cols-2 gap-3 py-8 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
-      {nfts.map((nft) => {
-        const imageUrl = nftImageUrl(nft.imageIpfsHash, nft.isRevealed);
-        const waveEntry = waveCatalog?.find(
-          (w) => w.waveNumber === nft.waveNumber,
-        );
-        const isFreeWave = waveEntry ? waveEntry.priceEth === 0 : undefined;
+      {nfts.map((nft) => (
+        <NftCard
+          key={nft.tokenId}
+          nft={nft}
+          waveEntry={waveCatalog?.find((w) => w.waveNumber === nft.waveNumber)}
+        />
+      ))}
+    </div>
+  );
+}
 
-        return (
-          <div
-            key={nft.tokenId}
-            className="group flex flex-col overflow-hidden rounded-2xl border border-secondary/10 bg-white shadow-[0_2px_10px_rgba(36,49,95,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(36,49,95,0.16)]"
-          >
-            <div className="relative aspect-square w-full overflow-hidden bg-secondary">
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  alt={`Bearth #${nft.tokenId}`}
-                  fill
-                  unoptimized
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : nft.blindBoxVideoUrl ? (
-                <video
-                  src={nft.blindBoxVideoUrl}
-                  poster={nft.blindBoxImageUrl ?? undefined}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : nft.blindBoxImageUrl ? (
-                <Image
-                  src={nft.blindBoxImageUrl}
-                  alt="Sealed Bearth"
-                  fill
-                  unoptimized
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-white/50">
-                  Blind Box
-                </div>
-              )}
-              <span
-                className={cn(
-                  "absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow-sm",
-                  nft.isRevealed
-                    ? "bg-primary text-white"
-                    : "bg-white/90 text-secondary",
-                )}
-              >
-                {nft.isRevealed ? "Revealed" : "Blind Box"}
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5 p-3">
-              <span className="text-sm font-bold text-secondary">
-                Bearth #{nft.tokenId}
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {nft.waveNumber !== null && (
-                  <span className="text-xs font-medium text-secondary/70">
-                    {waveEntry
-                      ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
-                      : `Wave ${nft.waveNumber}`}
-                  </span>
-                )}
-                {isFreeWave !== undefined && (
-                  <span
-                    className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-                      isFreeWave
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-secondary/10 text-secondary",
-                    )}
-                  >
-                    {isFreeWave ? "Free" : "Paid"}
-                  </span>
-                )}
-              </div>
-              {nft.rarityTier && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="text-xs font-semibold uppercase text-primary">
-                    {nft.rarityTier}
-                  </span>
-                  {nft.rarityRank !== null && (
-                    <span className="text-xs text-secondary/60">
-                      Rank #{nft.rarityRank}
-                    </span>
-                  )}
-                </div>
-              )}
-              {nft.isRevealed && nft.traits && (
-                <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1 rounded-lg bg-primary/5 p-2">
-                  {Object.entries(nft.traits).map(([traitType, value]) => (
-                    <div key={traitType} className="flex flex-col overflow-hidden">
-                      <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-secondary/50">
-                        {traitType}
-                      </span>
-                      <span className="truncate text-xs font-medium text-secondary">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <CopyableAddress address={nft.ownerAddress} />
-              {CONTRACT_ADDRESS && (
-                <a
-                  href={chainOption.openseaUrl(
-                    CONTRACT_ADDRESS,
-                    String(nft.tokenId),
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
-                >
-                  View on OpenSea
-                  <ExternalLinkIcon className="size-3" />
-                </a>
-              )}
-            </div>
+function NftCard({
+  nft,
+  waveEntry,
+}: {
+  nft: MemoryHallNft;
+  waveEntry: WaveCatalogEntry | undefined;
+}) {
+  const [traitsOpen, setTraitsOpen] = useState(false);
+  const imageUrl = nftImageUrl(nft.imageIpfsHash, nft.isRevealed);
+  const isFreeWave = waveEntry ? waveEntry.priceEth === 0 : undefined;
+  const traitEntries = Object.entries(nft.traits ?? {}).filter(
+    ([traitType]) => !RARITY_TRAIT_KEYS.has(traitType),
+  );
+
+  return (
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-secondary/10 bg-white shadow-[0_2px_10px_rgba(36,49,95,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(36,49,95,0.16)]">
+      <div className="relative aspect-square w-full overflow-hidden bg-secondary">
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={`Bearth #${nft.tokenId}`}
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : nft.blindBoxVideoUrl ? (
+          <video
+            src={nft.blindBoxVideoUrl}
+            poster={nft.blindBoxImageUrl ?? undefined}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : nft.blindBoxImageUrl ? (
+          <Image
+            src={nft.blindBoxImageUrl}
+            alt="Sealed Bearth"
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-white/50">
+            Blind Box
           </div>
-        );
-      })}
+        )}
+        <span
+          className={cn(
+            "absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide shadow-sm",
+            nft.isRevealed
+              ? "bg-primary text-white"
+              : "bg-white/90 text-secondary",
+          )}
+        >
+          {nft.isRevealed ? "Revealed" : "Blind Box"}
+        </span>
+      </div>
+      <div className="flex flex-col gap-1.5 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-bold text-secondary">
+            Bearth #{nft.tokenId}
+          </span>
+          {nft.rarityTier && (
+            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              {nft.rarityTier}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {nft.waveNumber !== null && (
+            <span className="text-xs font-medium text-secondary/70">
+              {waveEntry
+                ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
+                : `Wave ${nft.waveNumber}`}
+            </span>
+          )}
+          {isFreeWave !== undefined && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                isFreeWave
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-secondary/10 text-secondary",
+              )}
+            >
+              {isFreeWave ? "Free" : "Paid"}
+            </span>
+          )}
+          {nft.rarityRank !== null && (
+            <span className="text-xs text-secondary/60">
+              Rank #{nft.rarityRank}
+            </span>
+          )}
+        </div>
+        {nft.isRevealed && traitEntries.length > 0 && (
+          <div className="mt-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setTraitsOpen((v) => !v);
+              }}
+              className="flex w-full items-center justify-between rounded-lg px-0.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-secondary/50 transition-colors hover:text-primary"
+            >
+              <span>Attributes ({traitEntries.length})</span>
+              <ChevronDownIcon
+                className={cn(
+                  "size-3 transition-transform duration-200",
+                  traitsOpen && "rotate-180",
+                )}
+              />
+            </button>
+            {traitsOpen && (
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 rounded-lg bg-primary/5 p-2">
+                {traitEntries.map(([traitType, value]) => (
+                  <div key={traitType} className="flex flex-col overflow-hidden">
+                    <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-secondary/50">
+                      {traitType}
+                    </span>
+                    <span className="truncate text-xs font-medium text-secondary">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <CopyableAddress address={nft.ownerAddress} />
+        {CONTRACT_ADDRESS && (
+          <a
+            href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
+          >
+            View on OpenSea
+            <ExternalLinkIcon className="size-3" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }
