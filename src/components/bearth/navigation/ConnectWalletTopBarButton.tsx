@@ -11,6 +11,7 @@ import { useState } from "react";
 import { BearthButton } from "@/components/bearth/BearthButton";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { cn } from "@/lib/utils";
+import { useDelayedLoading } from "@/lib/use-delayed-loading";
 
 function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -28,17 +29,16 @@ export function ConnectWalletTopBarButton() {
     linkWallet,
   } = useWalletConnect();
   const [copied, setCopied] = useState(false);
+  const showLoadingSkeleton = useDelayedLoading(!privyReady);
 
-  // Same responsive footprint as before (desktop only -- mobile uses the
-  // separate side-menu link). A fully invisible placeholder here read as the
-  // button vanishing on refresh rather than loading -- a visible pulsing
-  // skeleton, sized to match the real button, signals "loading" instead of
-  // "missing" during the brief window before Privy rehydrates.
   if (!privyReady) {
     return (
       <div
         aria-hidden
-        className="hidden md:flex absolute right-2 h-[42px] w-[160px] animate-pulse rounded-sm bg-white/20"
+        className={cn(
+          "hidden md:flex absolute right-2 h-[42px] w-[160px] rounded-sm",
+          showLoadingSkeleton && "animate-pulse bg-white/20",
+        )}
       />
     );
   }

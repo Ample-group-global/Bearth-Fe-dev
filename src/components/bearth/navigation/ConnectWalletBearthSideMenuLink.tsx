@@ -3,6 +3,7 @@
 import { ArrowLeftRightIcon, LogOutIcon } from "lucide-react";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { cn } from "@/lib/utils";
+import { useDelayedLoading } from "@/lib/use-delayed-loading";
 import { BearthSideMenuLink } from "./BearthSideMenu";
 
 function truncateAddress(address: string) {
@@ -20,17 +21,17 @@ export function ConnectWalletBearthSideMenuLink() {
     isSwitchingWallet,
     linkWallet,
   } = useWalletConnect();
+  const showLoadingSkeleton = useDelayedLoading(!privyReady);
 
-  // Same fix as ConnectWalletTopBarButton -- avoid flashing "CONNECT" during
-  // the brief window before Privy finishes rehydrating the session on load.
-  // A visible pulsing skeleton (not a blank/nbsp placeholder) signals
-  // "loading" instead of reading as the link vanishing.
   if (!privyReady) {
     return (
       <BearthSideMenuLink href="#">
         <span
           aria-hidden
-          className="inline-block h-[1em] w-24 animate-pulse rounded bg-black/10"
+          className={cn(
+            "inline-block h-[1em] w-24 rounded",
+            showLoadingSkeleton && "animate-pulse bg-black/10",
+          )}
         />
       </BearthSideMenuLink>
     );
