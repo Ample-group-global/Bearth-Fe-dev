@@ -46,6 +46,22 @@ export function MintPageComponent({ className }: MintPageComponentProps) {
     </MaxWidthConstraintedLayout>
   );
 }
+function TotalMintedBadge() {
+  const { waves } = useBreathContract();
+  if (waves.isLoading || waves.state.length === 0) return null;
+
+  const totalMinted = waves.state.reduce((sum, w) => sum + w.soldCount, 0n);
+  const totalSupply = waves.state.reduce((sum, w) => sum + w.qty, 0n);
+  if (totalSupply === 0n) return null;
+
+  return (
+    <div className="text-[10px] font-bold uppercase tracking-wide text-white/80 lg:text-[13px]">
+      {totalMinted.toLocaleString()} / {totalSupply.toLocaleString()} minted
+      across all waves
+    </div>
+  );
+}
+
 function WaveStatusBox() {
   const { activeWave, pivotWave, waves, waveCatalog } = useBreathContract();
   // Neither activeWave.state being null nor waveCatalog.state being empty
@@ -108,6 +124,9 @@ function WaveStatusBox() {
                   )}
                 </>
               )}
+              <div className="mt-1.5">
+                <TotalMintedBadge />
+              </div>
             </>
           )}
         </div>
@@ -118,6 +137,52 @@ function WaveStatusBox() {
           className="object-cover"
         />
       </div>
+    </div>
+  );
+}
+
+// Single source of truth for label + color per status -- the previous
+// version picked the text color and the label text via two separate
+// ternary chains, which only stayed in sync by careful editing. A plain
+// text label at the ambient font size also read as an afterthought next to
+// the bold labels around it, which is what prompted this to become a pill.
+function StatusPill({
+  wrongNetwork,
+  isBlocked,
+  isLoading,
+  isPaused,
+  isLive,
+  allWavesDone,
+}: {
+  wrongNetwork: boolean;
+  isBlocked: boolean;
+  isLoading: boolean;
+  isPaused: boolean;
+  isLive: boolean;
+  allWavesDone: boolean;
+}) {
+  const { label, classes } = wrongNetwork
+    ? { label: "WRONG NETWORK", classes: "bg-red-500/15 text-red-400 ring-red-500/40" }
+    : isBlocked
+      ? { label: "WALLET BLOCKED", classes: "bg-red-500/15 text-red-400 ring-red-500/40" }
+      : isLoading
+        ? { label: "LOADING...", classes: "bg-white/10 text-gray-300 ring-white/20" }
+        : isPaused
+          ? { label: "MINTING PAUSED", classes: "bg-yellow-500/15 text-yellow-400 ring-yellow-500/40" }
+          : isLive
+            ? { label: "MINT LIVE", classes: "bg-green-500/15 text-green-400 ring-green-500/40" }
+            : allWavesDone
+              ? { label: "MINT CLOSED", classes: "bg-white/10 text-gray-300 ring-white/20" }
+              : { label: "COMING SOON", classes: "bg-primary/20 text-primary ring-primary/50" };
+
+  return (
+    <div
+      className={cn(
+        "mt-1 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide ring-1 lg:text-sm",
+        classes,
+      )}
+    >
+      {label}
     </div>
   );
 }
@@ -173,37 +238,16 @@ export function MintForm() {
       <div className="flex flex-col">
         <BreathMintButton></BreathMintButton>
       </div>
-      <div className="flex flex-col">
+      <div className="flex flex-col items-center">
         <div className="font-semibold">STATUS</div>
-        <div
-          className={
-            wrongNetwork || isBlocked.state
-              ? "text-red-500"
-              : activeWave.isLoading
-                ? "text-gray-400"
-                : isPaused.state
-                  ? "text-yellow-500"
-                  : activeWave.state
-                    ? "text-green-500"
-                    : allWavesDone
-                      ? "text-gray-400"
-                      : "text-primary"
-          }
-        >
-          {wrongNetwork
-            ? "WRONG NETWORK"
-            : isBlocked.state
-              ? "WALLET BLOCKED"
-              : activeWave.isLoading
-                ? "LOADING..."
-                : isPaused.state
-                  ? "MINTING PAUSED"
-                  : activeWave.state
-                    ? "MINT LIVE"
-                    : allWavesDone
-                      ? "MINT CLOSED"
-                      : "COMING SOON"}
-        </div>
+        <StatusPill
+          wrongNetwork={wrongNetwork}
+          isBlocked={isBlocked.state}
+          isLoading={activeWave.isLoading}
+          isPaused={isPaused.state}
+          isLive={Boolean(activeWave.state)}
+          allWavesDone={allWavesDone}
+        />
       </div>
     </div>
   );

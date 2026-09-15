@@ -36,6 +36,13 @@ export function RingItem({
   className,
   inline,
   secondaryValue,
+  // Colors the connector line + dot marker by wave state (finished / active
+  // / next-up / further upcoming) -- previously only the text color changed
+  // between states, so every wave's dot on the arc looked identical and the
+  // only way to tell them apart was reading the small supply numbers.
+  dotClassName,
+  lineClassName,
+  dotCoreClassName,
 }: {
   title?: string;
   value?: number | string;
@@ -46,6 +53,9 @@ export function RingItem({
   // Fills the space freed up by `inline` (previously the stacked value slot)
   // with a second stat below the dot separator -- e.g. mint progress.
   secondaryValue?: number | string;
+  dotClassName?: string;
+  lineClassName?: string;
+  dotCoreClassName?: string;
 }) {
   if (inline) {
     return (
@@ -57,9 +67,19 @@ export function RingItem({
         {secondaryValue !== undefined && (
           <>
             <div className="relative flex h-[35px] my-1">
-              <div className="absolute z-0 h-[35px] left-1/2 -translate-x-1/2 top-0 w-[2px] bg-white"></div>
-              <div className="z-1 w-[24px] h-[24px] rounded-full bg-black border-2 border-white flex items-center justify-center place-self-center">
-                <div className="w-[9px] h-[9px] rounded-full bg-white"></div>
+              <div
+                className={cn(
+                  "absolute z-0 h-[35px] left-1/2 -translate-x-1/2 top-0 w-[2px] bg-white",
+                  lineClassName,
+                )}
+              ></div>
+              <div
+                className={cn(
+                  "z-1 w-[24px] h-[24px] rounded-full bg-black border-2 border-white flex items-center justify-center place-self-center",
+                  dotClassName,
+                )}
+              >
+                <div className={cn("w-[9px] h-[9px] rounded-full bg-white", dotCoreClassName)}></div>
               </div>
             </div>
             <div>{secondaryValue}</div>
@@ -191,6 +211,11 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
               // was explicitly requested).
               const isPivot = w.waveNum === pivot;
               const showSupply = isPivot || isDone;
+              // "Next" = the nearest not-yet-active wave (pivot when it isn't
+              // also the active one) -- distinct from waves further out on
+              // the arc, which should read as further away, not equally
+              // "coming up."
+              const isNext = isPivot && !isActive;
               return (
                 <RingItem
                   key={w.waveNum}
@@ -210,7 +235,27 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                     // closed/upcoming/live genuinely read as three different
                     // colors, not three shades of the same white.
                     isDone && "text-gray-400 font-medium",
-                    !isActive && !isDone && "text-white font-semibold",
+                    !isActive && !isDone && isNext && "text-white font-semibold",
+                    !isActive && !isDone && !isNext && "text-white/50 font-medium",
+                  )}
+                  dotClassName={cn(
+                    isActive &&
+                      "border-primary bg-primary/25 shadow-[0_0_12px_rgba(65,175,235,0.8)]",
+                    isDone && "border-emerald-400 bg-emerald-400/15",
+                    !isActive && !isDone && isNext && "border-white",
+                    !isActive && !isDone && !isNext && "border-white/35",
+                  )}
+                  dotCoreClassName={cn(
+                    isActive && "bg-primary",
+                    isDone && "bg-emerald-400",
+                    !isActive && !isDone && isNext && "bg-white",
+                    !isActive && !isDone && !isNext && "bg-white/35",
+                  )}
+                  lineClassName={cn(
+                    isActive && "bg-primary",
+                    isDone && "bg-emerald-400",
+                    !isActive && !isDone && isNext && "bg-white",
+                    !isActive && !isDone && !isNext && "bg-white/35",
                   )}
                   inline
                 />
