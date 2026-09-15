@@ -240,8 +240,7 @@ function GallerySkeleton() {
 }
 
 export default function MemoryHallGallery() {
-  const { authenticated, login, wallet, privyReady, walletsReady } =
-    useWalletConnect();
+  const { authenticated, login, wallet, privyReady } = useWalletConnect();
   const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null);
 
   const { data, error, isLoading } = useSWR(
@@ -254,9 +253,12 @@ export default function MemoryHallGallery() {
   // finishes restoring the session from storage on page load -- treating
   // that window as "logged out" (rather than "loading") is exactly what
   // made an already-connected wallet flash "Connect your wallet" for a few
-  // seconds on every load. walletsReady covers the second stage: session
-  // restored, but Privy's wallet list hasn't resolved yet.
-  const stillResolvingWallet = !privyReady || (authenticated && !walletsReady);
+  // seconds on every load. Deliberately NOT also gating on walletsReady here
+  // (unlike wallet-connect-control.tsx) -- `wallet` itself populating is what
+  // actually matters for this component's data fetch, and gating on a second
+  // flag that isn't required for correctness only adds a way to get stuck if
+  // that flag is ever slow to resolve for a given wallet/connector.
+  const stillResolvingWallet = !privyReady;
   const showLoadingSkeleton = useDelayedLoading(stillResolvingWallet || isLoading);
 
   if (stillResolvingWallet) {

@@ -111,7 +111,9 @@ function WaveStatusBox() {
                     </>
                   ) : (
                     <div className="text-[10px] lg:text-[16px]">
-                      {`PRICE: ${Number(waveInfo.price) / 10 ** 18} ETH PER NFT`}
+                      {isLive
+                        ? `PRICE: ${Number(waveInfo.price) / 10 ** 18} ETH PER NFT`
+                        : "PRICE REVEALED WHEN THIS WAVE OPENS"}
                     </div>
                   )}
                 </>

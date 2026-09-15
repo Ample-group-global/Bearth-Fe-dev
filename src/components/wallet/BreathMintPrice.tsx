@@ -11,14 +11,10 @@ export function BreathMintPrice() {
     return <div>Free</div>;
   }
 
-  // Only multiply by mintQty once this wave is genuinely live -- mintQty
-  // isn't meaningful for a wave that hasn't opened yet, and multiplying it
-  // into a not-yet-mintable wave's preview price would show a fabricated
-  // "total" the customer can't actually pay right now.
   const isLive = activeWave.state !== null && activeWave.state === pivotWave;
   const perNft = Number(price.state) / 10 ** 18;
   if (!isLive) {
-    return <div>{perNft} ETH</div>;
+    return <div>TBA</div>;
   }
 
   // price.state is the per-NFT wave price -- must multiply by mintQty so this
