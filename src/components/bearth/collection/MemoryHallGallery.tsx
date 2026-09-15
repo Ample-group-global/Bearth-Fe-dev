@@ -379,7 +379,7 @@ function NftDetailModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative m-auto w-full max-w-[clamp(18rem,calc(100vh-27rem),22rem)] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-[20rem] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
@@ -393,7 +393,7 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div className="relative aspect-square w-full overflow-hidden bg-secondary/5">
+        <div className="relative aspect-[5/4] w-full overflow-hidden bg-secondary/5">
           {imageUrl ? (
             <>
               <Image
