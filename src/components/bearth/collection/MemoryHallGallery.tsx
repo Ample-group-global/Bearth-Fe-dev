@@ -79,25 +79,45 @@ const STARS = [
 ] as const;
 
 const ROCKETS = [
-  { top: "10%", size: 22, duration: "5.5s", delay: "0s" },
-  { top: "35%", size: 16, duration: "7s", delay: "1.4s" },
-  { top: "55%", size: 20, duration: "6.2s", delay: "2.6s" },
-  { top: "75%", size: 15, duration: "8s", delay: "0.6s" },
-  { top: "22%", size: 18, duration: "6.8s", delay: "3.4s" },
+  { start: "top-left", size: 22, duration: "5.5s", delay: "0s", dx: 34, dy: -6, rotate: 80 },
+  { start: "top-right", size: 16, duration: "7s", delay: "1.4s", dx: -32, dy: 8, rotate: -100 },
+  { start: "bottom-left", size: 20, duration: "6.2s", delay: "2.6s", dx: 26, dy: -22, rotate: 50 },
+  { start: "bottom-right", size: 15, duration: "8s", delay: "0.6s", dx: -26, dy: -20, rotate: -50 },
+  { start: "mid-left", size: 18, duration: "6.8s", delay: "3.4s", dx: 30, dy: 12, rotate: 112 },
 ] as const;
+
+const ROCKET_START_POS: Record<
+  (typeof ROCKETS)[number]["start"],
+  { top: string; left?: string; right?: string }
+> = {
+  "top-left": { top: "8%", left: "-10%" },
+  "top-right": { top: "15%", right: "-10%" },
+  "bottom-left": { top: "78%", left: "-10%" },
+  "bottom-right": { top: "70%", right: "-10%" },
+  "mid-left": { top: "45%", left: "-10%" },
+};
 
 function RocketIcon({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <svg width={size} height={size} viewBox="0 0 24 30" fill="none">
+      {/* nose cone */}
+      <path d="M12 0 8.5 8h7L12 0Z" fill="#41afeb" />
+      {/* cylindrical body */}
+      <rect x="8.5" y="8" width="7" height="12" rx="1" fill="#eef1f6" />
+      {/* window */}
+      <circle cx="12" cy="12.5" r="1.6" fill="#0d1330" />
+      <circle cx="12" cy="12.5" r="0.9" fill="#8fd0ff" />
+      {/* side fins */}
+      <path d="M8.5 15 4 20h4.5v-5Z" fill="#41afeb" />
+      <path d="M15.5 15 20 20h-4.5v-5Z" fill="#41afeb" />
+      {/* base fin */}
+      <rect x="8.5" y="19" width="7" height="2" rx="0.5" fill="#c9d3e0" />
+      {/* flame */}
       <path
-        d="M12 2c3 2.2 4.5 5.6 4.5 9.5 0 2-.5 3.8-1.3 5.3l-3.2 2.7-3.2-2.7C7.5 15.3 7 13.5 7 11.5 7 7.6 9 4.2 12 2Z"
-        fill="#e8ecf2"
+        className="rocket-flame"
+        d="M10 21.3h4l-1.4 6.2c-.2.9-1 .9-1.2 0Z"
+        fill="#8fd0ff"
       />
-      <path d="M12 6.5c1.1 1.2 1.7 2.8 1.7 4.5 0 1-.2 2-.6 2.8H10.9c-.4-.8-.6-1.8-.6-2.8 0-1.7.6-3.3 1.7-4.5Z" fill="#41afeb" />
-      <circle cx="12" cy="10.5" r="1.4" fill="#0d1330" />
-      <path d="M7 13.5 4.5 16l2 .5 1-1.7Z" fill="#c9d3e0" />
-      <path d="M17 13.5 19.5 16l-2 .5-1-1.7Z" fill="#c9d3e0" />
-      <path d="M9.7 17.5h4.6l-1.5 3.5c-.3.7-1.3.7-1.6 0Z" fill="#c9d3e0" />
     </svg>
   );
 }
@@ -118,19 +138,29 @@ function Starfield() {
           }}
         />
       ))}
-      {ROCKETS.map((rocket, i) => (
-        <div
-          key={i}
-          className="rocket absolute -left-8"
-          style={{
-            top: rocket.top,
-            animationDuration: rocket.duration,
-            animationDelay: rocket.delay,
-          }}
-        >
-          <RocketIcon size={rocket.size} />
-        </div>
-      ))}
+      {ROCKETS.map((rocket, i) => {
+        const pos = ROCKET_START_POS[rocket.start];
+        return (
+          <div
+            key={i}
+            className="rocket absolute"
+            style={
+              {
+                top: pos.top,
+                left: pos.left,
+                right: pos.right,
+                animationDuration: rocket.duration,
+                animationDelay: rocket.delay,
+                "--rocket-dx": `${rocket.dx}rem`,
+                "--rocket-dy": `${rocket.dy}rem`,
+                "--rocket-rotate": `${rocket.rotate}deg`,
+              } as React.CSSProperties
+            }
+          >
+            <RocketIcon size={rocket.size} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -298,6 +328,7 @@ function NftCard({
   const traitCount = Object.keys(nft.traits ?? {}).filter(
     (traitType) => !RARITY_TRAIT_KEYS.has(traitType),
   ).length;
+  const tier = tierStyle(nft.rarityTier);
 
   return (
     <div
@@ -309,7 +340,12 @@ function NftCard({
       }}
       className="group flex cursor-pointer flex-col transition-transform duration-300 hover:-translate-y-1"
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-secondary ring-1 ring-white/10 transition-shadow duration-300 group-hover:shadow-[0_10px_30px_rgba(65,175,235,0.3)] group-hover:ring-white/20">
+      <div
+        className={cn(
+          "relative aspect-square w-full overflow-hidden rounded-2xl bg-secondary ring-1 ring-white/10 transition-all duration-300 group-hover:ring-white/30",
+          nft.isRevealed && tier.glow,
+        )}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -358,7 +394,12 @@ function NftCard({
             Bearth #{nft.tokenId}
           </span>
           {nft.rarityTier && (
-            <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80 ring-1 ring-white/15">
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                tier.chip,
+              )}
+            >
               {nft.rarityTier}
             </span>
           )}
@@ -668,14 +709,30 @@ function NftDetailModal({
         }
         @keyframes flyAcross {
           from {
-            transform: translateX(0) translateY(0) rotate(90deg);
+            transform: translateX(0) translateY(0) rotate(var(--rocket-rotate));
           }
           to {
-            transform: translateX(36rem) translateY(-1.5rem) rotate(90deg);
+            transform: translateX(var(--rocket-dx)) translateY(var(--rocket-dy))
+              rotate(var(--rocket-rotate));
           }
         }
         .rocket {
           animation: flyAcross linear infinite;
+        }
+        @keyframes flameFlicker {
+          0%,
+          100% {
+            transform: scaleY(1);
+            opacity: 0.9;
+          }
+          50% {
+            transform: scaleY(1.3);
+            opacity: 0.6;
+          }
+        }
+        .rocket-flame {
+          transform-origin: 12px 21.3px;
+          animation: flameFlicker 0.25s ease-in-out infinite;
         }
         @media (prefers-reduced-motion: reduce) {
           .reveal-sheen {
@@ -689,6 +746,9 @@ function NftDetailModal({
           .rocket {
             animation: none;
             display: none;
+          }
+          .rocket-flame {
+            animation: none;
           }
         }
       `}</style>
