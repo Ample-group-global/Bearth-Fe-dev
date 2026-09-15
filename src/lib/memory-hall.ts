@@ -1,5 +1,7 @@
 "use server";
 
+import { getContractAddress } from "@/lib/contract-address";
+
 export interface MemoryHallNft {
   tokenId: number;
   ownerAddress: string;
@@ -42,10 +44,13 @@ export async function getOwnedNfts(
   // Memory Hall would mix in tokens from every other collection the API
   // happens to track (harmless in production with one real contract, but on
   // testnet this app tracks Test1/Test2/Test3 side by side).
-  const url = new URL(`${process.env.BEARTH_API_URL}/api/nft-sell/collection/tokens`);
+  const url = new URL(
+    `${(process.env.BEARTH_API_URL ?? "").trim()}/api/nft-sell/collection/tokens`,
+  );
   url.searchParams.set("owner", address);
-  if (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS) {
-    url.searchParams.set("contract_address", process.env.NEXT_PUBLIC_CONTRACT_ADDRESS);
+  const contractAddress = getContractAddress();
+  if (contractAddress) {
+    url.searchParams.set("contract_address", contractAddress);
   }
   const response = await fetch(url.toString());
 

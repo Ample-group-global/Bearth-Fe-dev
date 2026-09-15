@@ -1,6 +1,7 @@
 "use server";
 
 import { Hex } from "viem";
+import { getContractAddress } from "@/lib/contract-address";
 
 export interface MerkleProofResult {
   proof: Hex[];
@@ -11,19 +12,23 @@ export interface MerkleProofResult {
 export async function getWhitelistProof(
   address: string,
 ): Promise<MerkleProofResult> {
-  const result = fetch(`${process.env.BEARTH_API_URL}/api/whitelist/test`, {
+  const res = await fetch(`${process.env.BEARTH_API_URL}/api/whitelist/test`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address, contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS }),
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      return {
-        proof: data.proof,
-        root: data.root,
-        is_whitelisted: data.is_whitelisted,
-      };
-    });
-
-  return result;
+    body: JSON.stringify({ address, contractAddress: getContractAddress() }),
+  });
+  if (!res.ok) {
+    // Previously parsed the response unconditionally with no status check --
+    // a non-2xx here (e.g. contract_address rejected by the backend's regex
+    // validation) still returned {}.is_whitelisted as undefined, which reads
+    // as "not whitelisted" and would silently block minting with no visible
+    // error anywhere.
+    throw new Error(`Whitelist check failed (${res.status})`);
+  }
+  const data = await res.json();
+  return {
+    proof: data.proof,
+    root: data.root,
+    is_whitelisted: data.is_whitelisted,
+  };
 }

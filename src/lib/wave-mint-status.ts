@@ -1,13 +1,16 @@
 "use server";
 
+import { getContractAddress } from "@/lib/contract-address";
+
 export async function getWalletMintedInWave(
   address: string,
   waveNum: number,
 ): Promise<number> {
-  const url = new URL(`${process.env.BEARTH_API_URL}/api/nft-sell/collection/tokens`);
+  const url = new URL(
+    `${(process.env.BEARTH_API_URL ?? "").trim()}/api/nft-sell/collection/tokens`,
+  );
   url.searchParams.set("owner", address);
-  url.searchParams.set("contract_address", process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? "");
-  url.searchParams.set("limit", "500");
+  url.searchParams.set("contract_address", getContractAddress());
 
   const res = await fetch(url.toString());
   if (!res.ok) return 0;
