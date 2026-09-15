@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, type Hex, http } from "viem";
 import { useSWRConfig } from "swr";
@@ -52,6 +53,7 @@ export function MintingAnimation({
 
   const { chain, wallet } = useWalletConnect();
   const { mutate } = useSWRConfig();
+  const router = useRouter();
   const [tokenId, setTokenId] = useState<[string, string] | null>(null);
 
   const [videoState, setVideoState] = useState<VideoState>(VideoState.Init);
@@ -161,6 +163,16 @@ export function MintingAnimation({
       canvasRef.current?.next();
     }
   }, [canComplete, receiptStatus]);
+
+  // Auto-continue to Memory Hall after a successful mint -- long enough to
+  // register "it worked" and see the OpenSea/Memory Hall choice, short
+  // enough that a customer who doesn't click either button isn't just left
+  // stranded on the result screen.
+  useEffect(() => {
+    if (videoState !== VideoState.CompletedResult) return;
+    const timer = setTimeout(() => router.push("/collection"), 6000);
+    return () => clearTimeout(timer);
+  }, [videoState, router]);
 
   return (
     <MaxWidthConstraintedLayout
