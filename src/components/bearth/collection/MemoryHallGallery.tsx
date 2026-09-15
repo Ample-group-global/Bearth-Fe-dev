@@ -63,6 +63,41 @@ function tierStyle(tier: string | null) {
   return TIER_STYLES[tier?.toLowerCase() ?? ""] ?? TIER_STYLES.common;
 }
 
+const STARS = [
+  { top: "8%", left: "12%", size: 2, delay: "0s" },
+  { top: "18%", left: "78%", size: 1.5, delay: "0.6s" },
+  { top: "30%", left: "45%", size: 1, delay: "1.2s" },
+  { top: "12%", left: "60%", size: 1.5, delay: "1.8s" },
+  { top: "40%", left: "20%", size: 1, delay: "0.3s" },
+  { top: "55%", left: "85%", size: 2, delay: "0.9s" },
+  { top: "70%", left: "10%", size: 1.5, delay: "1.5s" },
+  { top: "65%", left: "55%", size: 1, delay: "2.1s" },
+  { top: "80%", left: "70%", size: 1.5, delay: "0.4s" },
+  { top: "85%", left: "30%", size: 1, delay: "1.1s" },
+  { top: "25%", left: "90%", size: 1, delay: "1.7s" },
+  { top: "5%", left: "35%", size: 1.5, delay: "0.7s" },
+] as const;
+
+function Starfield() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {STARS.map((star, i) => (
+        <span
+          key={i}
+          className="star absolute rounded-full bg-white"
+          style={{
+            top: star.top,
+            left: star.left,
+            width: star.size,
+            height: star.size,
+            animationDelay: star.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 const IPFS_GATEWAY = "https://amgbearth.myfilebase.com/ipfs/";
 const chainOption =
   chainOptions[process.env.NEXT_PUBLIC_CONTRACT_NET as "mainnet" | "sepolia"];
@@ -397,9 +432,10 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div className="relative aspect-square max-h-[42vh] w-full overflow-hidden bg-secondary/5">
+        <div className="relative aspect-square max-h-[42vh] w-full overflow-hidden bg-[#0d1330]">
           {imageUrl ? (
             <>
+              <Starfield />
               <div className="absolute inset-4">
                 <Image
                   src={imageUrl}
@@ -412,29 +448,38 @@ function NftDetailModal({
               <div className="reveal-sheen pointer-events-none absolute inset-0" />
             </>
           ) : nft.blindBoxVideoUrl ? (
-            <video
-              src={nft.blindBoxVideoUrl}
-              poster={nft.blindBoxImageUrl ?? undefined}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="h-full w-full object-contain p-4"
-            />
-          ) : nft.blindBoxImageUrl ? (
-            <div className="absolute inset-4">
-              <Image
-                src={nft.blindBoxImageUrl}
-                alt="Sealed Bearth"
-                fill
-                unoptimized
-                className="object-contain"
+            <>
+              <Starfield />
+              <video
+                src={nft.blindBoxVideoUrl}
+                poster={nft.blindBoxImageUrl ?? undefined}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="relative h-full w-full object-contain p-4"
               />
-            </div>
+            </>
+          ) : nft.blindBoxImageUrl ? (
+            <>
+              <Starfield />
+              <div className="absolute inset-4">
+                <Image
+                  src={nft.blindBoxImageUrl}
+                  alt="Sealed Bearth"
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
+            </>
           ) : (
-            <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-secondary/40">
-              Blind Box
-            </div>
+            <>
+              <Starfield />
+              <div className="relative flex h-full items-center justify-center text-xs uppercase tracking-wide text-white/50">
+                Blind Box
+              </div>
+            </>
           )}
         </div>
 
@@ -445,15 +490,6 @@ function NftDetailModal({
           }}
         >
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                tier.chip,
-              )}
-            >
-              <SparklesIcon className="size-3" />
-              {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
-            </span>
             <div className="min-w-0">
               <h2 className="truncate text-lg font-extrabold tracking-tight text-secondary">
                 Bearth #{nft.tokenId}
@@ -467,6 +503,15 @@ function NftDetailModal({
                 {isFreeWave !== undefined && (isFreeWave ? " · Free mint" : " · Paid mint")}
               </p>
             </div>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                tier.chip,
+              )}
+            >
+              <SparklesIcon className="size-3" />
+              {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
+            </span>
           </div>
 
           <div className="mt-2">
@@ -573,10 +618,28 @@ function NftDetailModal({
           );
           animation: revealSheen 1.1s 0.15s ease-out both;
         }
+        @keyframes twinkle {
+          0%,
+          100% {
+            opacity: 0.15;
+            transform: scale(0.8);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.15);
+          }
+        }
+        .star {
+          animation: twinkle 2.4s ease-in-out infinite;
+        }
         @media (prefers-reduced-motion: reduce) {
           .reveal-sheen {
             animation: none;
             display: none;
+          }
+          .star {
+            animation: none;
+            opacity: 0.6;
           }
         }
       `}</style>
