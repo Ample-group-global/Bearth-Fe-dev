@@ -28,9 +28,9 @@ import { useWalletConnect } from "./WalletConnectContext";
 export type BreathAbi = typeof BearthNFTAbi.abi;
 
 export enum Phase {
-  Whitelist, // 0: Wave 1 free/allowlist claim
-  PaidMint, // 1: Waves 2-7 paid mint
-  Revealed, // 2: Post-mint
+  Whitelist,
+  PaidMint,
+  Revealed,
 }
 
 export function parsePhase(phase: number): Phase {
@@ -65,27 +65,15 @@ export interface WaveInfo {
 export interface BreathContractContextValue {
   phase: SWRState<Phase>;
   activeWave: SWRState<number | null>;
-  // Which wave the ring/status box should center and describe -- the truly
-  // active wave when one is open, otherwise the next not-yet-closed,
-  // not-yet-ended wave in sequence (covers both "nothing has started yet"
-  // and "current wave just ended, next one hasn't opened"). Plain (not
-  // SWRState) since it's a synchronous derivation of `waves`, not its own fetch.
   pivotWave: number | null;
   waves: SWRState<WaveInfo[]>;
   price: SWRState<bigint>;
   waveCatalog: SWRState<WaveCatalogEntry[]>;
   limit: SWRState<bigint>;
   isWhitelisted: SWRState<boolean>;
-  // Registered in customer_wallets (is_whitelisted=true) — a frontend-only gate applied
-  // to ALL waves (1-7), not just the on-chain merkle check that only covers wave 1.
   isRegistered: SWRState<boolean>;
   allowlistClaimed: SWRState<boolean>;
   walletTotalMinted: SWRState<bigint>;
-  // Both enforced on-chain regardless of what this UI shows (whenNotPaused
-  // modifier, blockedAccounts[msg.sender] check in waveMint/whitelistMint) --
-  // mirrored here purely so a paused contract or a blocked wallet shows an
-  // honest "why" instead of a mint button that looks live and only fails
-  // after the customer has already paid gas for a doomed transaction.
   isPaused: SWRState<boolean>;
   isBlocked: SWRState<boolean>;
 
@@ -122,8 +110,6 @@ export function BreathContractProvider({
   children: React.ReactNode;
 }) {
   const [mintQty, setMintQty] = useState(1);
-  // Bounds the whitelist-proof poll below -- reset per wallet so switching
-  // wallets gets a fresh set of retries instead of inheriting an exhausted count.
   const whitelistPollCountRef = useRef(0);
 
   const { chain, wallet } = useWalletConnect();
@@ -145,12 +131,6 @@ export function BreathContractProvider({
         ? createPublicClient({
             chain,
             transport: http(process.env.NEXT_PUBLIC_RPC_URL || undefined),
-            // The per-wave read below fires 7 waves x 7 fields = 49 eth_call
-            // requests in one Promise.all burst -- easily trips Infura's free-tier
-            // rate limit (429). Multicall batching folds same-tick contract reads
-            // into a single eth_call against the standard Multicall3 contract
-            // (already deployed at its canonical address on Sepolia), so this
-            // burst becomes ~1 RPC round-trip instead of 49.
             batch: { multicall: true },
           })
         : null,
@@ -169,13 +149,6 @@ export function BreathContractProvider({
     [wallet, chain, provider],
   );
 
-  // Only publicClient is required to build a read-capable contract instance --
-  // it depends solely on the static `chain` constant, not on the wallet's async
-  // getEthereumProvider() call. Requiring walletClient here too meant EVERY read
-  // (phase, waves, everything -- not just the mint write) silently never fired
-  // whenever that provider call was slow or never resolved for a given wallet
-  // connector, permanently showing "MINT NOT OPEN" even though the contract and
-  // network were fine.
   const contract = useMemo(
     () =>
       publicClient
@@ -190,9 +163,6 @@ export function BreathContractProvider({
     [publicClient],
   );
 
-  // Separate instance for the actual mint write -- genuinely needs walletClient,
-  // unlike every read above. Kept apart so `contract`'s type stays read-capable
-  // without walletClient's possible-undefined-ness narrowing away .write/.estimateGas.
   const writableContract = useMemo(
     () =>
       publicClient && walletClient
@@ -253,15 +223,6 @@ export function BreathContractProvider({
     const now = BigInt(Math.floor(Date.now() / 1000));
 
     if (phase === Phase.Whitelist) {
-      // Previously only checked !closed -- waveClosed only ever flips true via
-      // an explicit admin "move unsold to treasury" action (see BearthNFT.sol),
-      // never automatically when the schedule's end time passes. That meant
-      // Wave 1's "MINT LIVE" status could keep showing indefinitely past its
-      // real end time (until an admin happens to run that action), unlike
-      // Waves 2-7 below, which already correctly check the time window. The
-      // contract itself was never at risk (whitelistMint() enforces the same
-      // window on-chain regardless of what the UI shows) -- this was purely a
-      // misleading customer-facing status display bug.
       const wave1 = waves.find((w) => w.waveNum === 1);
       return wave1 &&
         !wave1.closed &&
@@ -292,10 +253,6 @@ export function BreathContractProvider({
     [waves, activeWave],
   );
 
-  // Same logic as MintRing's ring-position pivot -- kept here too so the
-  // status box can describe the same wave the ring visually centers, instead
-  // of only ever showing "MINT NOT OPEN" whenever no wave happens to be live
-  // right this second.
   const pivotWave = useMemo(() => {
     if (activeWave) return activeWave;
     if (!waves?.length) return null;
@@ -312,39 +269,17 @@ export function BreathContractProvider({
     [waves, pivotWave],
   );
 
-  // Wave names/sale-method labels live only in Postgres (the contract has no name
-  // field) -- fetched separately via a public, no-auth BearthApi-V1 route since this
-  // is independent of wallet/contract state.
   const { data: waveCatalog } = useSWR("wave-catalog", getWaveCatalog);
 
   const { data: whitelistProof, isLoading: whitelistProofLoading } = useSWR(
     wallet ? (["whitelist-proof", wallet.address] as const) : null,
     async ([, address]) => {
       const result = await getWhitelistProof(address);
-      // This zeroing was one-way: nothing ever set mintQty back up once
-      // is_whitelisted flipped true again, so a wallet caught mid-registration
-      // (auto-registration on connect isn't instant -- a freshly connected
-      // wallet can briefly read is_whitelisted:false before the backend
-      // finishes registering it) got permanently stuck at "0 / 1" -- eligible
-      // per every other check (proof valid, not yet claimed, limit=1) but
-      // unable to mint because the qty field itself was zeroed and never
-      // recovered. Restoring to 1 here whenever whitelisting is confirmed
-      // true fixes that without affecting the already-correct zeroing for
-      // wallets that are genuinely not whitelisted.
       setMintQty(result.is_whitelisted ? 1 : 0);
       if (!result.is_whitelisted) whitelistPollCountRef.current += 1;
       return result;
     },
     {
-      // registerWallet() (auto-registration, fired independently in
-      // WalletConnectContext on connect) and this proof fetch race each other
-      // with no coordination -- if this wins, is_whitelisted reads false
-      // before registration lands, and with revalidateOnFocus disabled
-      // globally this SWR entry would otherwise never refetch, leaving a
-      // genuinely-eligible wallet stuck looking unwhitelisted indefinitely.
-      // Poll briefly until it flips true; capped so a wallet that's
-      // genuinely never going to be whitelisted (blocked, unregistered)
-      // doesn't poll the backend forever.
       refreshInterval: (data) =>
         data?.is_whitelisted || whitelistPollCountRef.current >= 8
           ? 0
@@ -392,9 +327,6 @@ export function BreathContractProvider({
   const { data: isPaused, isLoading: isPausedLoading } = useSWR(
     contract ? (["contract-paused", contract] as const) : null,
     ([, c]) => c.read.paused() as Promise<boolean>,
-    // Pausing is an emergency admin action that can happen at any moment
-    // mid-session -- unlike the rest of this context's reads, this one is
-    // worth polling instead of only fetching once on mount.
     { refreshInterval: 15_000 },
   );
 
@@ -407,10 +339,6 @@ export function BreathContractProvider({
 
   const isRegistered = whitelistProof?.is_whitelisted ?? false;
 
-  // wavePurchaseLimit has a public getter, but the per-wallet-per-wave consumption
-  // counter (waveMinted[wave][wallet]) does not -- so a per-wave override can only be
-  // pre-checked here via the DB-backed mint history (synced from the same on-chain
-  // Mint events the contract itself enforces against).
   const { data: waveMintedCount } = useSWR(
     contract && wallet && activeWave && activeWave > 1
       ? (["wave-minted-count", wallet.address, activeWave, contract] as const)
@@ -419,12 +347,7 @@ export function BreathContractProvider({
   );
 
   const limit = useMemo(() => {
-    // Both enforced on-chain (whenNotPaused, blockedAccounts check) -- these
-    // two only exist so the UI reads 0 instead of showing a live-looking
-    // mint button that's actually guaranteed to revert.
     if (isPaused || isBlocked) return 0n;
-    // Frontend-only gate: a wallet not registered/whitelisted in customer_wallets
-    // cannot mint ANY wave (1-7), even though only wave 1 enforces this on-chain.
     if (!isRegistered) return 0n;
 
     if (activeWave === 1) {
@@ -464,8 +387,7 @@ export function BreathContractProvider({
       const block = await publicClient.getBlock({ blockTag: "latest" });
       const fees = await publicClient.estimateFeesPerGas();
       const baseFee = block.baseFeePerGas ?? 0n;
-      const priority = fees.maxPriorityFeePerGas ?? 1_500_000_000n; // 1.5 gwei fallback
-      // pad maxFeePerGas: 2x base fee + priority to absorb base-fee bumps
+      const priority = fees.maxPriorityFeePerGas ?? 1_500_000_000n;
       const maxFeePerGas = baseFee * 2n + priority;
       return { maxFeePerGas, maxPriorityFeePerGas: priority };
     } catch {
@@ -474,9 +396,6 @@ export function BreathContractProvider({
   }, [publicClient]);
 
   const mint = useCallback(async () => {
-    // writableContract requires walletClient (unlike the read-only `contract`
-    // above), so this guard is what actually gates the write on the wallet being
-    // fully ready -- reads elsewhere on the page no longer wait on this at all.
     if (!writableContract || !wallet)
       throw new Error("Not initialized");
     if (isPaused) throw new Error("Minting is currently paused");
@@ -504,9 +423,6 @@ export function BreathContractProvider({
     }
 
     if (activeWave && activeWave >= 2) {
-      // waveMint (waves 2-7) requires the same allowlist proof as whitelistMint —
-      // fetch fresh rather than reuse the cached SWR value, since the on-chain root
-      // may have moved since it was last fetched.
       const proofResult = await getWhitelistProof(wallet.address);
       if (!proofResult.is_whitelisted) {
         throw new Error("Address is not whitelisted");
@@ -561,9 +477,6 @@ export function BreathContractProvider({
         state: waves ?? [],
         isLoading: wavesLoading || waves === undefined,
       },
-      // Sourced from pivotWave, not activeWave, so this still shows the next
-      // wave's real price as a preview during the gap between waves instead
-      // of always falling back to 0/"Free" whenever nothing is live yet.
       price: {
         state: pivotWaveInfo?.price ?? BigInt(0),
         isLoading: wavesLoading,

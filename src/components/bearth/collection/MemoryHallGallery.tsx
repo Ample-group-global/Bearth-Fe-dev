@@ -18,15 +18,8 @@ import { getOwnedNfts, type MemoryHallNft } from "@/lib/memory-hall";
 import { getWaveCatalog, type WaveCatalogEntry } from "@/lib/wave-catalog";
 import { waveSeriesName } from "@/lib/wave-display";
 
-// Rarity Rank/Tier/Score already have their own dedicated badge line on the
-// card -- the traits blob also carries them as ordinary attributes, which
-// duplicated all three as trait tiles again further down the same card.
 const RARITY_TRAIT_KEYS = new Set(["Rarity Rank", "Rarity Tier", "Rarity Score"]);
 
-// Modal panel is a light card (matching NftCard's white-on-navy-page
-// language already used everywhere else here) -- these are tuned for dark
-// text/tints on a white ground, not the pastel-on-dark pairing an earlier
-// dark-panel version used.
 const TIER_STYLES: Record<
   string,
   { text: string; glow: string; glowColor: string; ring: string; chip: string; wash: string }
@@ -70,10 +63,6 @@ function tierStyle(tier: string | null) {
 }
 
 const IPFS_GATEWAY = "https://amgbearth.myfilebase.com/ipfs/";
-// Same helper the mint-success screen uses -- on Sepolia this correctly
-// points at Etherscan's NFT view instead of opensea.io, since OpenSea has no
-// testnet listing path (retired July 2025); on mainnet it's a real OpenSea
-// item link a holder can list for sale from.
 const chainOption =
   chainOptions[process.env.NEXT_PUBLIC_CONTRACT_NET as "mainnet" | "sepolia"];
 const CONTRACT_ADDRESS = (
@@ -88,10 +77,6 @@ function nftImageUrl(imageIpfsHash: string | null, isRevealed: boolean) {
 function EmptyState({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex justify-center py-8 sm:py-16">
-      {/* Solid white card (same language as the NFT tiles below) rather than
-          text floating directly on the page background -- guarantees
-          readable contrast regardless of what's behind it, and reads as a
-          deliberate, defined UI element instead of loose centered text. */}
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-secondary/10 bg-white px-8 py-12 text-center shadow-[0_2px_10px_rgba(36,49,95,0.08)]">
         {children}
       </div>
@@ -143,8 +128,6 @@ export default function MemoryHallGallery() {
     wallet ? (["memory-hall", wallet.address] as const) : null,
     ([, address]) => getOwnedNfts(address),
   );
-  // Same public wave-catalog endpoint the mint page uses -- token records only
-  // carry a bare wave number, real names/pricing live in Postgres, not on-chain.
   const { data: waveCatalog } = useSWR("wave-catalog", getWaveCatalog);
 
   if (!authenticated || !wallet) {
@@ -159,10 +142,6 @@ export default function MemoryHallGallery() {
   }
 
   if (isLoading) {
-    // Matches the real grid + card layout below exactly (same classes) so
-    // nothing shifts or resizes once actual data arrives -- a bare spinner in
-    // an otherwise-empty page read as a jarring stall rather than a gallery
-    // already in the middle of loading.
     return (
       <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {Array.from({ length: 8 }, (_, i) => (
@@ -390,15 +369,6 @@ function NftDetailModal({
 
   return (
     <div
-      // grid + m-auto on the card below, not flex + items-center -- centering
-      // an overflowing child with align-items/justify-content clips whatever
-      // sticks out ABOVE center and makes it unreachable by scrolling (the
-      // browser centers first, then the scrollable range only ever covers
-      // the bottom overflow). This modal is often taller than the viewport
-      // (square image + full attributes list), so that bug cropped the top
-      // of the artwork with no way to scroll up to see it. auto margins
-      // center the same way when everything fits, but collapse to 0 and
-      // stay fully scrollable once content overflows either direction.
       className="fixed inset-0 z-50 grid overflow-y-auto bg-secondary/80 p-4 backdrop-blur-sm"
       style={{ animation: "fadeIn 0.2s ease-out forwards" }}
       onClick={onClose}
@@ -406,19 +376,6 @@ function NftDetailModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          // White card matches NftCard's established look (white tiles on
-          // the navy page background) -- a dark panel here read as a
-          // mismatched, unpolished detour from that language.
-          //
-          // Single column, not side-by-side: the artwork is square but the
-          // info column's natural height varies with trait count, so a
-          // two-column split forced a choice between cropping the artwork
-          // (object-cover stretched to match a taller-than-square column)
-          // or letterboxing it (object-contain, leaving bare bands top/
-          // bottom and an inconsistent-looking side gap). Stacking the
-          // image as its own true aspect-square tile above the info removes
-          // the mismatch entirely -- object-cover now crops nothing because
-          // the box IS square -- and lets the modal itself be narrower.
           "relative m-auto w-full max-w-sm overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
@@ -433,15 +390,9 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        {/* width capped by viewport height (not just card width) so the
-            square image shrinks on short windows instead of pushing the
-            info below off-screen -- a square tile sized purely off card
-            width has no ceiling tied to how tall the actual browser window
-            is, which is what forced page-level scrolling on shorter
-            viewports even with a narrow card. */}
         <div
           className="relative mx-auto aspect-square overflow-hidden bg-secondary/5"
-          style={{ width: "min(100%, 42vh)" }}
+          style={{ width: "min(100%, 34vh)" }}
         >
           {imageUrl ? (
             <>
@@ -452,8 +403,6 @@ function NftDetailModal({
                 unoptimized
                 className="object-cover"
               />
-              {/* One-shot diagonal sheen on open -- the "wow" beat for a
-                  reveal that's otherwise just a static image swap. */}
               <div className="reveal-sheen pointer-events-none absolute inset-0" />
             </>
           ) : nft.blindBoxVideoUrl ? (
@@ -481,118 +430,109 @@ function NftDetailModal({
           )}
         </div>
 
-        {/* One continuous body below the image -- no internal scroll region
-            and no separately-boxed footer. An earlier version kept the
-            address + OpenSea row in a bordered footer to stop it being
-            clipped by the modal's rounded corner, but that read as its own
-            disconnected section instead of part of the reveal. Letting
-            content flow naturally means the card simply grows to fit
-            everything; if it ever exceeds the viewport, the backdrop's own
-            overflow-y-auto scrolls the page rather than a scrollbar living
-            inside the card. */}
         <div
-            className="relative overflow-hidden p-4 pb-5"
-            style={{
-              background: `radial-gradient(120% 60% at 0% 0%, ${tier.glowColor}, transparent 60%)`,
-            }}
+          className="relative overflow-hidden p-4 pb-5"
+          style={{
+            background: `radial-gradient(120% 60% at 0% 0%, ${tier.glowColor}, transparent 60%)`,
+          }}
+        >
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+              tier.chip,
+            )}
           >
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                tier.chip,
-              )}
-            >
-              <SparklesIcon className="size-3" />
-              {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
-            </span>
-            <h2 className="mt-1.5 text-lg font-extrabold tracking-tight text-secondary">
-              Bearth #{nft.tokenId}
-            </h2>
-            <p className="text-xs text-secondary/60">
-              {waveEntry
-                ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
-                : nft.waveNumber !== null
-                  ? `Wave ${nft.waveNumber}`
-                  : null}
-              {isFreeWave !== undefined && (isFreeWave ? " · Free mint" : " · Paid mint")}
-            </p>
+            <SparklesIcon className="size-3" />
+            {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
+          </span>
+          <h2 className="mt-1.5 text-lg font-extrabold tracking-tight text-secondary">
+            Bearth #{nft.tokenId}
+          </h2>
+          <p className="text-xs text-secondary/60">
+            {waveEntry
+              ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
+              : nft.waveNumber !== null
+                ? `Wave ${nft.waveNumber}`
+                : null}
+            {isFreeWave !== undefined && (isFreeWave ? " · Free mint" : " · Paid mint")}
+          </p>
 
-            <div className="mt-2.5">
-              {nft.isRevealed && (nft.rarityRank !== null || nft.rarityScore !== null) && (
-                <div className="grid grid-cols-2 gap-1.5">
-                  {nft.rarityRank !== null && (
-                    <div
-                      className={cn(
-                        "rounded-lg bg-gradient-to-b p-2 ring-1",
-                        tier.wash,
-                        tier.ring,
-                      )}
-                    >
-                      <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
-                        Rarity Rank
-                      </p>
-                      <p className={cn("text-sm font-bold", tier.text)}>
-                        #{nft.rarityRank}
-                      </p>
-                    </div>
-                  )}
-                  {nft.rarityScore !== null && (
-                    <div
-                      className={cn(
-                        "rounded-lg bg-gradient-to-b p-2 ring-1",
-                        tier.wash,
-                        tier.ring,
-                      )}
-                    >
-                      <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
-                        Rarity Score
-                      </p>
-                      <p className="text-sm font-bold text-secondary">{nft.rarityScore}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {nft.isRevealed && traitEntries.length > 0 && (
-                <div className="mt-2.5">
-                  <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-secondary/45">
-                    Attributes
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {traitEntries.map(([traitType, value]) => (
-                      <div
-                        key={traitType}
-                        className="rounded-lg bg-secondary/[0.04] p-1.5 ring-1 ring-secondary/[0.06] transition-colors hover:bg-secondary/[0.07]"
-                      >
-                        <p className="truncate text-[8px] font-semibold uppercase tracking-wide text-secondary/45">
-                          {traitType}
-                        </p>
-                        <p className="truncate text-xs font-semibold text-secondary">
-                          {value}
-                        </p>
-                      </div>
-                    ))}
+          <div className="mt-2.5">
+            {nft.isRevealed && (nft.rarityRank !== null || nft.rarityScore !== null) && (
+              <div className="grid grid-cols-2 gap-1.5">
+                {nft.rarityRank !== null && (
+                  <div
+                    className={cn(
+                      "rounded-lg bg-gradient-to-b p-2 ring-1",
+                      tier.wash,
+                      tier.ring,
+                    )}
+                  >
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
+                      Rarity Rank
+                    </p>
+                    <p className={cn("text-sm font-bold", tier.text)}>
+                      #{nft.rarityRank}
+                    </p>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+                {nft.rarityScore !== null && (
+                  <div
+                    className={cn(
+                      "rounded-lg bg-gradient-to-b p-2 ring-1",
+                      tier.wash,
+                      tier.ring,
+                    )}
+                  >
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
+                      Rarity Score
+                    </p>
+                    <p className="text-sm font-bold text-secondary">{nft.rarityScore}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <CopyableAddress address={nft.ownerAddress} />
-              {CONTRACT_ADDRESS && (
-                <a
-                  href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
-                >
-                  View on OpenSea
-                  <ExternalLinkIcon className="size-3" />
-                </a>
-              )}
-            </div>
+            {nft.isRevealed && traitEntries.length > 0 && (
+              <div className="mt-2">
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-secondary/45">
+                  Attributes
+                </p>
+                <div className="grid grid-cols-3 gap-1">
+                  {traitEntries.map(([traitType, value]) => (
+                    <div
+                      key={traitType}
+                      className="rounded-md bg-secondary/[0.04] px-1.5 py-1 ring-1 ring-secondary/[0.06] transition-colors hover:bg-secondary/[0.07]"
+                    >
+                      <p className="truncate text-[7px] font-semibold uppercase tracking-wide text-secondary/45">
+                        {traitType}
+                      </p>
+                      <p className="truncate text-[11px] font-semibold text-secondary">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <CopyableAddress address={nft.ownerAddress} />
+            {CONTRACT_ADDRESS && (
+              <a
+                href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
+              >
+                View on OpenSea
+                <ExternalLinkIcon className="size-3" />
+              </a>
+            )}
           </div>
         </div>
+      </div>
       <style jsx global>{`
         @keyframes modalIn {
           from {

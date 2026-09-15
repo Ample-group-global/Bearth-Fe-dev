@@ -18,11 +18,6 @@ export async function getWhitelistProof(
     body: JSON.stringify({ address, contractAddress: getContractAddress() }),
   });
   if (!res.ok) {
-    // Previously parsed the response unconditionally with no status check --
-    // a non-2xx here (e.g. contract_address rejected by the backend's regex
-    // validation) still returned {}.is_whitelisted as undefined, which reads
-    // as "not whitelisted" and would silently block minting with no visible
-    // error anywhere.
     throw new Error(`Whitelist check failed (${res.status})`);
   }
   const data = await res.json();

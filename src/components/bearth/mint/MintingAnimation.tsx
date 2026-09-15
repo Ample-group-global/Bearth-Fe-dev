@@ -53,6 +53,7 @@ export function MintingAnimation({
 
   const { chain, wallet } = useWalletConnect();
   const { mutate } = useSWRConfig();
+  const { clearMintFlow } = useMintFlow();
   const router = useRouter();
   const [tokenId, setTokenId] = useState<[string, string] | null>(null);
 
@@ -61,9 +62,6 @@ export function MintingAnimation({
     "success" | "reverted" | "timeout" | "failed" | null
   >(null);
   const [canComplete, setCanComplete] = useState(false);
-  // Populated only for a transaction that was genuinely broadcast and mined,
-  // then reverted on-chain -- distinct from `failureReason`, which covers the
-  // pre-flight case where mint() never got as far as sending a transaction.
   const [revertReason, setRevertReason] = useState<string | null>(null);
   const receiptLoadedRef = useRef(false);
   const canvasRef = useRef<MintAnimationCanvasHandle>(null);
@@ -95,10 +93,13 @@ export function MintingAnimation({
     publicClient
       .waitForTransactionReceipt({
         hash: txHash as Hex,
-        // 3 minutes
         timeout: 180_000,
       })
       .then(async (receipt) => {
+        if (wallet && receipt.from.toLowerCase() !== wallet.address.toLowerCase()) {
+          clearMintFlow();
+          return;
+        }
         console.log("Transaction Receipt: ", receipt);
         setReceiptStatus(receipt.status);
         const tokenId = receipt?.logs?.[0]?.topics?.[3];
@@ -107,25 +108,10 @@ export function MintingAnimation({
         }
 
         if (receipt.status === "success" && wallet) {
-          // Marks any Memory Hall data already cached from a visit earlier
-          // in this session as stale, so navigating there after "View in
-          // Memory Hall" shows the new mint instead of the pre-mint snapshot
-          // it had cached (revalidateOnFocus is off site-wide, so nothing
-          // else would have triggered this refetch).
           mutate(["memory-hall", wallet.address]);
         }
 
         if (receipt.status === "reverted") {
-          // The receipt itself never carries a revert reason -- replaying the
-          // exact same call at the block it was mined in re-triggers the same
-          // revert, which viem surfaces as a readable message when it can
-          // decode one. Without this, every on-chain revert (already claimed,
-          // wrong wave, insufficient funds, etc.) showed the same unhelpful
-          // generic sentence. Some wallets route transactions through their
-          // own smart-account/delegation execution layer, in which case the
-          // true failure is nested inside that wrapper and isn't decodable
-          // from here -- an honest "unknown reason" surfaces instead of a
-          // fabricated one.
           try {
             const tx = await publicClient.getTransaction({
               hash: txHash as Hex,
@@ -164,15 +150,14 @@ export function MintingAnimation({
     }
   }, [canComplete, receiptStatus]);
 
-  // Auto-continue to Memory Hall after a successful mint -- long enough to
-  // register "it worked" and see the OpenSea/Memory Hall choice, short
-  // enough that a customer who doesn't click either button isn't just left
-  // stranded on the result screen.
   useEffect(() => {
     if (videoState !== VideoState.CompletedResult) return;
-    const timer = setTimeout(() => router.push("/collection"), 6000);
+    const timer = setTimeout(() => {
+      clearMintFlow();
+      router.push("/collection");
+    }, 6000);
     return () => clearTimeout(timer);
-  }, [videoState, router]);
+  }, [videoState, router, clearMintFlow]);
 
   return (
     <MaxWidthConstraintedLayout
@@ -258,7 +243,11 @@ export function MintingAnimation({
                 >
                   Check in Opensea
                 </BearthButton>
-                <BearthButton type="secondary" href="/collection">
+                <BearthButton
+                  type="secondary"
+                  href="/collection"
+                  onClick={clearMintFlow}
+                >
                   View in Memory Hall
                 </BearthButton>
               </div>
@@ -298,7 +287,7 @@ export function MintingAnimation({
                     "We couldn't process your transaction. Please try again."}
                 </p>
               )}
-              <BearthButton type="secondary" href="/mint">
+              <BearthButton type="secondary" href="/mint" onClick={clearMintFlow}>
                 Try Again
               </BearthButton>
             </>

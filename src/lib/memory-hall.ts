@@ -40,10 +40,6 @@ interface RawToken {
 export async function getOwnedNfts(
   address: string,
 ): Promise<MemoryHallResponse> {
-  // Scoped to this deployment's own contract -- without it, a wallet's
-  // Memory Hall would mix in tokens from every other collection the API
-  // happens to track (harmless in production with one real contract, but on
-  // testnet this app tracks Test1/Test2/Test3 side by side).
   const url = new URL(
     `${(process.env.BEARTH_API_URL ?? "").trim()}/api/nft-sell/collection/tokens`,
   );

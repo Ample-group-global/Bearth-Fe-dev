@@ -1,13 +1,25 @@
 "use client";
 import { createContext, useContext, useState } from "react";
 
+const STORAGE_KEY_TX = "bearth:mint-tx-hash";
+const STORAGE_KEY_REASON = "bearth:mint-failure-reason";
+
+function readStoredTxHash(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(STORAGE_KEY_TX);
+}
+
+function readStoredFailureReason(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(STORAGE_KEY_REASON);
+}
+
 interface MintFlowContextType {
   setTxHash: (txHash: string) => void;
   txHash: string | null;
-  // Set alongside setTxHash("failed") for a pre-flight failure (no transaction
-  // ever broadcast) so the reason travels with the swap instead of a URL param.
   setFailureReason: (reason: string) => void;
   failureReason: string | null;
+  clearMintFlow: () => void;
 }
 
 const MintFlowContext = createContext<MintFlowContextType>({
@@ -15,6 +27,7 @@ const MintFlowContext = createContext<MintFlowContextType>({
   txHash: null,
   setFailureReason: () => {},
   failureReason: null,
+  clearMintFlow: () => {},
 });
 
 export function MintFlowProvider({
@@ -24,12 +37,31 @@ export function MintFlowProvider({
   mintPageSlot: React.ReactNode;
   mintingAnimationSlot: React.ReactNode;
 }) {
-  const [txHash, setTxHash] = useState<string | null>(null);
-  const [failureReason, setFailureReason] = useState<string | null>(null);
+  const [txHash, setTxHashState] = useState<string | null>(readStoredTxHash);
+  const [failureReason, setFailureReasonState] = useState<string | null>(
+    readStoredFailureReason,
+  );
+
+  const setTxHash = (hash: string) => {
+    window.sessionStorage.setItem(STORAGE_KEY_TX, hash);
+    setTxHashState(hash);
+  };
+
+  const setFailureReason = (reason: string) => {
+    window.sessionStorage.setItem(STORAGE_KEY_REASON, reason);
+    setFailureReasonState(reason);
+  };
+
+  const clearMintFlow = () => {
+    window.sessionStorage.removeItem(STORAGE_KEY_TX);
+    window.sessionStorage.removeItem(STORAGE_KEY_REASON);
+    setTxHashState(null);
+    setFailureReasonState(null);
+  };
 
   return (
     <MintFlowContext.Provider
-      value={{ txHash, setTxHash, failureReason, setFailureReason }}
+      value={{ txHash, setTxHash, failureReason, setFailureReason, clearMintFlow }}
     >
       {txHash ? mintingAnimationSlot : mintPageSlot}
     </MintFlowContext.Provider>

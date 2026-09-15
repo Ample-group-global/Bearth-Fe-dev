@@ -34,10 +34,8 @@ export function MintPageComponent({ className }: MintPageComponentProps) {
     >
       <MintPageBackground />
 
-      {/* Top-Right Status Box */}
       <WaveStatusBox />
 
-      {/* Ring Container */}
       <MintRing>
         <WalletConnectControl>
           <MintForm />
@@ -64,17 +62,7 @@ function TotalMintedBadge() {
 
 function WaveStatusBox() {
   const { activeWave, pivotWave, waves, waveCatalog } = useBreathContract();
-  // Neither activeWave.state being null nor waveCatalog.state being empty
-  // distinguishes "still loading" from "genuinely no wave is active" -- on a
-  // fresh page load/refresh this previously collapsed straight to "MINT NOT
-  // OPEN" for the ~300-500ms before data arrived, reading as the wave info
-  // vanishing rather than loading.
   const isLoading = activeWave.isLoading || waveCatalog.isLoading;
-  // Describes pivotWave (same wave the ring below centers) rather than only
-  // activeWave.state -- previously this box only ever showed real info while
-  // a wave was genuinely live, collapsing to a bare "MINT NOT OPEN" for the
-  // entire gap between waves even though the next wave's price/details are
-  // already known and worth showing as a preview.
   const displayWaveNum = pivotWave;
   const isLive = activeWave.state !== null && activeWave.state === pivotWave;
   const waveInfo = waves.state.find((w) => w.waveNum === displayWaveNum);
@@ -141,11 +129,6 @@ function WaveStatusBox() {
   );
 }
 
-// Single source of truth for label + color per status -- the previous
-// version picked the text color and the label text via two separate
-// ternary chains, which only stayed in sync by careful editing. A plain
-// text label at the ambient font size also read as an afterthought next to
-// the bold labels around it, which is what prompted this to become a pill.
 function StatusPill({
   wrongNetwork,
   isBlocked,
@@ -191,22 +174,12 @@ export function MintForm() {
   const { activeWave, pivotWave, waves, waveCatalog, isPaused, isBlocked } =
     useBreathContract();
   const { wrongNetwork } = useWalletConnect();
-  // Every wave closed or past its scheduled end -- distinct from "no wave
-  // active yet" (a real upcoming wave is still queued). Only this genuine
-  // end-of-collection case still reads as "MINT CLOSED"; everything else
-  // that isn't live yet is "COMING SOON" instead of the same terminal-
-  // sounding label.
   const nowSecondsForStatus = BigInt(Math.floor(Date.now() / 1000));
   const allWavesDone =
     waves.state.length > 0 &&
     waves.state.every(
       (w) => w.closed || (w.endTime > 0n && w.endTime <= nowSecondsForStatus),
     );
-  // Live (activeWave === pivotWave): show the real wave name + "TOTAL PRICE"
-  // for however many NFTs are queued to mint. Not live yet (pivotWave is
-  // just the next upcoming wave): "PER NFT PRICE" instead -- qty isn't
-  // meaningful for a wave that isn't open, so labeling it "total" would
-  // misleadingly imply a computed total the customer can't actually pay yet.
   const isLive = activeWave.state !== null && activeWave.state === pivotWave;
   const pivotCatalogEntry = waveCatalog.state.find(
     (w) => w.waveNumber === pivotWave,

@@ -17,12 +17,6 @@ export function RingContainer({
         className,
       )}
     >
-      {/* drop-shadow -- the background art (rocket dock-tower) sits directly
-          behind several ring positions (e.g. Wave 3/4 whenever they rotate
-          over it) and its panel-seam detail was swallowing plain white text,
-          reading as "the supply number is broken/missing" even though it was
-          rendering correctly; a dark shadow keeps every label legible no
-          matter which wave lands over the artwork. */}
       <div className="text-xs absolute h-[100px] top-0 left-1/2 -translate-x-1/2 text-white flex flex-col items-center justify-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
         {children}
       </div>
@@ -36,10 +30,6 @@ export function RingItem({
   className,
   inline,
   secondaryValue,
-  // Colors the connector line + dot marker by wave state (finished / active
-  // / next-up / further upcoming) -- previously only the text color changed
-  // between states, so every wave's dot on the arc looked identical and the
-  // only way to tell them apart was reading the small supply numbers.
   dotClassName,
   lineClassName,
   dotCoreClassName,
@@ -47,11 +37,7 @@ export function RingItem({
   title?: string;
   value?: number | string;
   className?: string;
-  // Renders value beside title on one line instead of stacked below the
-  // dot separator -- used for the Wave/Free item per explicit design request.
   inline?: boolean;
-  // Fills the space freed up by `inline` (previously the stacked value slot)
-  // with a second stat below the dot separator -- e.g. mint progress.
   secondaryValue?: number | string;
   dotClassName?: string;
   lineClassName?: string;
@@ -62,7 +48,7 @@ export function RingItem({
       <RingContainer className={cn("font-semibold", className)}>
         <div className="flex items-center gap-2">
           <span>{title}</span>
-          <span>{value ?? "\u00A0"}</span>
+          <span>{value ?? " "}</span>
         </div>
         {secondaryValue !== undefined && (
           <>
@@ -98,39 +84,25 @@ export function RingItem({
           <div className="w-[9px] h-[9px] rounded-full bg-white"></div>
         </div>
       </div>
-      <div>{value ?? "\u00A0"}</div>
+      <div>{value ?? " "}</div>
     </RingContainer>
   );
 }
 
-// Position of each wave is relative to the ACTIVE wave, not a fixed anchor: the
-// active wave sits at rotate-0 (top/middle), finished waves rotate anticlockwise
-// to the left (negative), upcoming waves sit clockwise to the right (positive).
-// Indexed by (waveNum - activeWaveNum) + 6, covering every possible offset for a
-// fixed 7-wave layout (-6..+6). As activeWave advances, each wave's offset shifts
-// by one slot, which combined with the transition on RingContainer animates the
-// whole ring rotating anticlockwise -- past waves exit left, the next wave enters
-// from the right into the middle.
-//
-// 20deg/step (not the ring's full 360/7 spacing): on this ring's large radius even
-// a ~51deg step swings an item most of the way to the viewport edge, and any step
-// whose max offset (x6) reaches or passes 180deg visually wraps to the opposite
-// side -- exactly what put wave 7 on the left while wave 1 was still active. 20deg
-// keeps every offset (max 120deg) unambiguously on its correct side and on-screen.
 const ROTATION_BY_OFFSET = [
-  "-rotate-120", // -6
-  "-rotate-100", // -5
-  "-rotate-80", // -4
-  "-rotate-60", // -3
-  "-rotate-40", // -2
-  "-rotate-20", // -1
-  "rotate-0", // 0 (active -- middle)
-  "rotate-20", // +1
-  "rotate-40", // +2
-  "rotate-60", // +3
-  "rotate-80", // +4
-  "rotate-100", // +5
-  "rotate-120", // +6
+  "-rotate-120",
+  "-rotate-100",
+  "-rotate-80",
+  "-rotate-60",
+  "-rotate-40",
+  "-rotate-20",
+  "rotate-0",
+  "rotate-20",
+  "rotate-40",
+  "rotate-60",
+  "rotate-80",
+  "rotate-100",
+  "rotate-120",
 ];
 
 export function RingLine({ className }: { className?: string }) {
@@ -143,34 +115,22 @@ export function RingLine({ className }: { className?: string }) {
   );
 }
 
-// Fixed 7-wave collection (see ROTATION_BY_OFFSET's own comment) -- used only
-// to size the loading skeleton below, not to assume real wave data.
 const SKELETON_WAVE_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
 
 export default function MintRing({ children }: { children: React.ReactNode }) {
-  // 7-wave model: the old 4-stage whitelist/public/phase2/sold-out ring math doesn't map to
-  // discrete waves, so this shows a simple current-wave status card instead of a progress ring.
   const contract = useBreathContract();
 
-  // waves.state defaults to [] before its SWR fetch resolves -- previously
-  // this rendered zero ring items with no loading indication, so every page
-  // refresh showed the wave labels vanish for ~300-500ms then pop back in.
   const isLoadingWaves = contract.waves.isLoading || contract.activeWave.isLoading;
 
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
   );
-  // Which wave sits in the ring's center slot -- computed once in
-  // BreathContractContext (as pivotWave) so the ring and the status box
-  // above it always agree on the same wave instead of each deriving it
-  // separately and risking drift.
   const pivot = contract.pivotWave ?? 1;
   const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
 
   return (
     <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">
       <div className="relative rounded-full bg-black/50 w-full h-full flex items-center justify-center">
-        {/* Ring Items -- one per wave, positioned relative to the active wave */}
         {isLoadingWaves
           ? SKELETON_WAVE_NUMBERS.map((waveNum) => (
               <RingContainer
@@ -184,37 +144,12 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
               </RingContainer>
             ))
           : waveList.map((w) => {
-              // Deliberately NOT `w.waveNum === pivot` -- pivot only controls
-              // ring position now (see above), so the centered wave doesn't
-              // fall back to "no wave is active" (bright/highlighted styling
-              // is what tells the customer a wave can actually be minted right
-              // now; Wave 2 sitting in the center slot before it opens should
-              // still read as muted/disabled, not falsely active).
               const isActive = w.waveNum === contract.activeWave.state;
-              // Time-based, not just w.closed -- a wave that ran out its
-              // scheduled window (like Wave 1) reads as "done" here even
-              // though the separate manual waveClosed flag is still false,
-              // matching the same time-aware logic used for pivotWave.
               const isDone =
                 !isActive &&
                 (w.closed || (w.endTime > 0n && w.endTime <= nowSeconds));
-              // Real supply count shows for the centered wave (pivot is
-              // already "the active wave, or else the next upcoming one" --
-              // see BreathContractContext -- so this one check covers both
-              // "active" and "centered" without them ever disagreeing) and
-              // for any already-closed wave (a real historical result, not a
-              // premature reveal). Genuinely future, not-yet-centered waves
-              // show a "0" placeholder instead of the real count -- NOT
-              // `undefined` (that drops secondaryValue's dot-separator + line
-              // entirely, making those items visibly shorter than the rest
-              // of the ring; keeping the same two-line layout for every wave
-              // was explicitly requested).
               const isPivot = w.waveNum === pivot;
               const showSupply = isPivot || isDone;
-              // "Next" = the nearest not-yet-active wave (pivot when it isn't
-              // also the active one) -- distinct from waves further out on
-              // the arc, which should read as further away, not equally
-              // "coming up."
               const isNext = isPivot && !isActive;
               return (
                 <RingItem
@@ -227,15 +162,8 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                   }
                   className={cn(
                     ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
-                    // Green = actually mintable right now -- matches the
-                    // STATUS pill's "MINT LIVE" color so the two live
-                    // indicators on this page agree with each other.
                     isActive &&
                       "text-green-400 opacity-100 font-extrabold drop-shadow-[0_0_10px_rgba(74,222,128,0.7)]",
-                    // Finished waves read as disabled/inert, not "done in a
-                    // good way" -- an earlier version used the same green as
-                    // active, which put a sold-out wave and a live one in
-                    // the same color family.
                     isDone && "text-gray-500/70 font-medium",
                     !isActive && !isDone && isNext && "text-white font-semibold",
                     !isActive && !isDone && !isNext && "text-white/50 font-medium",
@@ -264,11 +192,9 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
               );
             })}
 
-        {/* Inner Circle */}
         <div className="rounded-full w-[1100px] h-[1100px] border-3 border-white flex items-center justify-center">
           <div className="rounded-full w-[1000px] h-[1000px] bg-black/20 border border-white/20 relative">
             <div className="rounded-full absolute top-0 left-0 w-full h-full justify-center flex flex-row mt-9 text-sm">
-              {/* 3x2 grid, height is fit-content */}
               <div className="h-[140px]">
                 <div className="w-full h-full flex flex-col items-center justify-center">
                   {children}
