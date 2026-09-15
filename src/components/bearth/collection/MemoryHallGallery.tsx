@@ -64,19 +64,43 @@ function tierStyle(tier: string | null) {
 }
 
 const STARS = [
-  { top: "8%", left: "12%", size: 2, delay: "0s" },
-  { top: "18%", left: "78%", size: 1.5, delay: "0.6s" },
-  { top: "30%", left: "45%", size: 1, delay: "1.2s" },
-  { top: "12%", left: "60%", size: 1.5, delay: "1.8s" },
-  { top: "40%", left: "20%", size: 1, delay: "0.3s" },
-  { top: "55%", left: "85%", size: 2, delay: "0.9s" },
-  { top: "70%", left: "10%", size: 1.5, delay: "1.5s" },
-  { top: "65%", left: "55%", size: 1, delay: "2.1s" },
-  { top: "80%", left: "70%", size: 1.5, delay: "0.4s" },
-  { top: "85%", left: "30%", size: 1, delay: "1.1s" },
-  { top: "25%", left: "90%", size: 1, delay: "1.7s" },
-  { top: "5%", left: "35%", size: 1.5, delay: "0.7s" },
+  { top: "8%", left: "12%", size: 4, delay: "0s" },
+  { top: "18%", left: "78%", size: 3, delay: "0.3s" },
+  { top: "30%", left: "45%", size: 2.5, delay: "0.6s" },
+  { top: "12%", left: "60%", size: 3, delay: "0.9s" },
+  { top: "40%", left: "20%", size: 2.5, delay: "0.15s" },
+  { top: "55%", left: "85%", size: 4, delay: "0.45s" },
+  { top: "70%", left: "10%", size: 3, delay: "0.75s" },
+  { top: "65%", left: "55%", size: 2.5, delay: "1.05s" },
+  { top: "80%", left: "70%", size: 3, delay: "0.2s" },
+  { top: "85%", left: "30%", size: 2.5, delay: "0.55s" },
+  { top: "25%", left: "90%", size: 2.5, delay: "0.85s" },
+  { top: "5%", left: "35%", size: 3, delay: "0.35s" },
 ] as const;
+
+const ROCKETS = [
+  { top: "10%", size: 22, duration: "5.5s", delay: "0s" },
+  { top: "35%", size: 16, duration: "7s", delay: "1.4s" },
+  { top: "55%", size: 20, duration: "6.2s", delay: "2.6s" },
+  { top: "75%", size: 15, duration: "8s", delay: "0.6s" },
+  { top: "22%", size: 18, duration: "6.8s", delay: "3.4s" },
+] as const;
+
+function RocketIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 2c3 2.2 4.5 5.6 4.5 9.5 0 2-.5 3.8-1.3 5.3l-3.2 2.7-3.2-2.7C7.5 15.3 7 13.5 7 11.5 7 7.6 9 4.2 12 2Z"
+        fill="#e8ecf2"
+      />
+      <path d="M12 6.5c1.1 1.2 1.7 2.8 1.7 4.5 0 1-.2 2-.6 2.8H10.9c-.4-.8-.6-1.8-.6-2.8 0-1.7.6-3.3 1.7-4.5Z" fill="#41afeb" />
+      <circle cx="12" cy="10.5" r="1.4" fill="#0d1330" />
+      <path d="M7 13.5 4.5 16l2 .5 1-1.7Z" fill="#c9d3e0" />
+      <path d="M17 13.5 19.5 16l-2 .5-1-1.7Z" fill="#c9d3e0" />
+      <path d="M9.7 17.5h4.6l-1.5 3.5c-.3.7-1.3.7-1.6 0Z" fill="#c9d3e0" />
+    </svg>
+  );
+}
 
 function Starfield() {
   return (
@@ -93,6 +117,19 @@ function Starfield() {
             animationDelay: star.delay,
           }}
         />
+      ))}
+      {ROCKETS.map((rocket, i) => (
+        <div
+          key={i}
+          className="rocket absolute -left-8"
+          style={{
+            top: rocket.top,
+            animationDuration: rocket.duration,
+            animationDelay: rocket.delay,
+          }}
+        >
+          <RocketIcon size={rocket.size} />
+        </div>
       ))}
     </div>
   );
@@ -222,7 +259,7 @@ export default function MemoryHallGallery() {
 
   return (
     <>
-      <div className="animate-in fade-in flex flex-wrap justify-center gap-2.5 py-8 duration-300 sm:gap-3.5">
+      <div className="animate-in fade-in flex flex-wrap justify-start gap-2.5 py-8 duration-300 sm:gap-3.5">
         {nfts.map((nft) => (
           <div
             key={nft.tokenId}
@@ -618,16 +655,27 @@ function NftDetailModal({
         @keyframes twinkle {
           0%,
           100% {
-            opacity: 0.15;
-            transform: scale(0.8);
+            opacity: 0.2;
+            transform: scale(0.7);
           }
           50% {
             opacity: 1;
-            transform: scale(1.15);
+            transform: scale(1.3);
           }
         }
         .star {
-          animation: twinkle 2.4s ease-in-out infinite;
+          animation: twinkle 1s ease-in-out infinite;
+        }
+        @keyframes flyAcross {
+          from {
+            transform: translateX(0) translateY(0) rotate(90deg);
+          }
+          to {
+            transform: translateX(36rem) translateY(-1.5rem) rotate(90deg);
+          }
+        }
+        .rocket {
+          animation: flyAcross linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
           .reveal-sheen {
@@ -637,6 +685,10 @@ function NftDetailModal({
           .star {
             animation: none;
             opacity: 0.6;
+          }
+          .rocket {
+            animation: none;
+            display: none;
           }
         }
       `}</style>
