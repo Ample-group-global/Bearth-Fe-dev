@@ -338,7 +338,7 @@ function NftCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onOpen();
       }}
-      className="group flex cursor-pointer flex-col rounded-2xl bg-white/[0.04] p-2 ring-1 ring-white/8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.06] hover:ring-white/15"
+      className="group flex cursor-pointer flex-col rounded-2xl bg-white/10 p-2 ring-1 ring-white/15 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.14] hover:ring-white/25"
     >
       <div
         className={cn(
