@@ -433,7 +433,16 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div className="relative aspect-square w-full overflow-hidden bg-secondary/5">
+        {/* width capped by viewport height (not just card width) so the
+            square image shrinks on short windows instead of pushing the
+            info below off-screen -- a square tile sized purely off card
+            width has no ceiling tied to how tall the actual browser window
+            is, which is what forced page-level scrolling on shorter
+            viewports even with a narrow card. */}
+        <div
+          className="relative mx-auto aspect-square overflow-hidden bg-secondary/5"
+          style={{ width: "min(100%, 42vh)" }}
+        >
           {imageUrl ? (
             <>
               <Image
