@@ -415,15 +415,22 @@ function NftDetailModal({
         </button>
 
         <div className="grid sm:grid-cols-2">
-          <div className="relative aspect-square w-full overflow-hidden bg-secondary/5 sm:aspect-auto">
+          <div className="relative aspect-square w-full min-h-[280px] overflow-hidden bg-secondary/5 sm:aspect-auto sm:min-h-[420px]">
             {imageUrl ? (
               <>
+                {/* object-contain, not object-cover -- the artwork is
+                    square but this column isn't (it matches whatever height
+                    the attributes column needs), so object-cover was
+                    zooming in and cropping off the top of the hat and the
+                    feet to fill a taller-than-square box. Contain always
+                    shows the complete piece, letterboxed on the container's
+                    neutral background instead of cut off. */}
                 <Image
                   src={imageUrl}
                   alt={`Bearth #${nft.tokenId}`}
                   fill
                   unoptimized
-                  className="object-cover"
+                  className="object-contain"
                 />
                 {/* One-shot diagonal sheen on open -- the "wow" beat for a
                     reveal that's otherwise just a static image swap. */}
@@ -437,7 +444,7 @@ function NftDetailModal({
                 loop
                 muted
                 playsInline
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             ) : nft.blindBoxImageUrl ? (
               <Image
@@ -445,7 +452,7 @@ function NftDetailModal({
                 alt="Sealed Bearth"
                 fill
                 unoptimized
-                className="object-cover"
+                className="object-contain"
               />
             ) : (
               <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-secondary/40">
