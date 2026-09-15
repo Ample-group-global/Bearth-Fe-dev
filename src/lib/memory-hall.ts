@@ -38,9 +38,16 @@ interface RawToken {
 export async function getOwnedNfts(
   address: string,
 ): Promise<MemoryHallResponse> {
-  const response = await fetch(
-    `${process.env.BEARTH_API_URL}/api/nft-sell/collection/tokens?owner=${address}&limit=200`,
-  );
+  // Scoped to this deployment's own contract -- without it, a wallet's
+  // Memory Hall would mix in tokens from every other collection the API
+  // happens to track (harmless in production with one real contract, but on
+  // testnet this app tracks Test1/Test2/Test3 side by side).
+  const url = new URL(`${process.env.BEARTH_API_URL}/api/nft-sell/collection/tokens`);
+  url.searchParams.set("owner", address);
+  if (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS) {
+    url.searchParams.set("contract_address", process.env.NEXT_PUBLIC_CONTRACT_ADDRESS);
+  }
+  const response = await fetch(url.toString());
 
   if (!response.ok) {
     throw new Error(`Failed to load NFTs (${response.status})`);
