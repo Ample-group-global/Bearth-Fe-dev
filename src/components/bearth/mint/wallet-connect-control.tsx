@@ -8,13 +8,15 @@ export function WalletConnectControl({
 }: {
   children: React.ReactNode;
 }) {
-  const { login, authenticated, wallet, walletsReady, linkWallet } =
+  const { login, authenticated, wallet, walletsReady, privyReady, linkWallet } =
     useWalletConnect();
 
-  if (authenticated && !walletsReady) {
-    // Authenticated, but Privy's wallet list hasn't resolved yet -- showing
-    // "Connect Wallet" here would be misleading (the user IS connected) and
-    // clicking it just reopens the login modal for no reason.
+  if (!privyReady || (authenticated && !walletsReady)) {
+    // Privy reads authenticated=false for a brief moment before it finishes
+    // restoring the session from storage on page load -- and once restored,
+    // the wallet list can still take a moment to resolve. Showing "Connect
+    // Wallet" during either window would be misleading (the user IS
+    // connected) and clicking it just reopens the login modal for no reason.
     return <BearthButton href="#" type="secondary">Loading wallet...</BearthButton>;
   }
 

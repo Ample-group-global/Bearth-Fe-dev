@@ -223,8 +223,25 @@ function CopyableAddress({
   );
 }
 
+function GallerySkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 animate-in fade-in duration-300">
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="flex flex-col">
+          <div className="aspect-square w-full animate-pulse rounded-2xl bg-white/10 ring-1 ring-white/10" />
+          <div className="flex flex-col gap-1.5 pt-2.5">
+            <div className="h-3.5 w-16 animate-pulse rounded bg-white/10" />
+            <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function MemoryHallGallery() {
-  const { authenticated, login, wallet } = useWalletConnect();
+  const { authenticated, login, wallet, privyReady, walletsReady } =
+    useWalletConnect();
   const [selectedTokenId, setSelectedTokenId] = useState<number | null>(null);
 
   const { data, error, isLoading } = useSWR(
@@ -232,7 +249,20 @@ export default function MemoryHallGallery() {
     ([, address]) => getOwnedNfts(address),
   );
   const { data: waveCatalog } = useSWR("wave-catalog", getWaveCatalog);
-  const showLoadingSkeleton = useDelayedLoading(isLoading);
+
+  // Privy's own docs: authenticated reads false for a brief moment before it
+  // finishes restoring the session from storage on page load -- treating
+  // that window as "logged out" (rather than "loading") is exactly what
+  // made an already-connected wallet flash "Connect your wallet" for a few
+  // seconds on every load. walletsReady covers the second stage: session
+  // restored, but Privy's wallet list hasn't resolved yet.
+  const stillResolvingWallet = !privyReady || (authenticated && !walletsReady);
+  const showLoadingSkeleton = useDelayedLoading(stillResolvingWallet || isLoading);
+
+  if (stillResolvingWallet) {
+    if (!showLoadingSkeleton) return null;
+    return <GallerySkeleton />;
+  }
 
   if (!authenticated || !wallet) {
     return (
@@ -247,19 +277,7 @@ export default function MemoryHallGallery() {
 
   if (isLoading) {
     if (!showLoadingSkeleton) return null;
-    return (
-      <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 animate-in fade-in duration-300">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="flex flex-col">
-            <div className="aspect-square w-full animate-pulse rounded-2xl bg-white/10 ring-1 ring-white/10" />
-            <div className="flex flex-col gap-1.5 pt-2.5">
-              <div className="h-3.5 w-16 animate-pulse rounded bg-white/10" />
-              <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <GallerySkeleton />;
   }
 
   if (error) {
