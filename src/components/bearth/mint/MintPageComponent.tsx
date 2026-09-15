@@ -14,6 +14,7 @@ import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { waveSeriesName } from "@/lib/wave-display";
 import { cn } from "@/lib/utils";
+import { useDelayedLoading } from "@/lib/use-delayed-loading";
 
 interface MintPageComponentProps {
   className?: string;
@@ -63,6 +64,7 @@ function TotalMintedBadge() {
 function WaveStatusBox() {
   const { activeWave, pivotWave, waves, waveCatalog } = useBreathContract();
   const isLoading = activeWave.isLoading || waveCatalog.isLoading;
+  const showLoadingSkeleton = useDelayedLoading(isLoading);
   const displayWaveNum = pivotWave;
   const isLive = activeWave.state !== null && activeWave.state === pivotWave;
   const waveInfo = waves.state.find((w) => w.waveNum === displayWaveNum);
@@ -81,12 +83,14 @@ function WaveStatusBox() {
       <div className="relative text-white h-full w-full">
         <div className="absolute right-0 bottom-0 pb-6 px-8 text-right font-hoss-round z-1">
           {isLoading ? (
-            <div className="flex flex-col items-end gap-2">
-              <div className="h-[20px] w-[180px] animate-pulse rounded bg-white/20 lg:h-[24px]" />
-              <div className="h-[14px] w-[140px] animate-pulse rounded bg-white/20 lg:h-[20px]" />
-            </div>
+            showLoadingSkeleton ? (
+              <div className="flex flex-col items-end gap-2 animate-in fade-in duration-300">
+                <div className="h-[20px] w-[180px] animate-pulse rounded bg-white/20 lg:h-[24px]" />
+                <div className="h-[14px] w-[140px] animate-pulse rounded bg-white/20 lg:h-[20px]" />
+              </div>
+            ) : null
           ) : (
-            <>
+            <div className="animate-in fade-in duration-300">
               <div className="text-[20px] lg:text-[24px] font-semibold">
                 {waveTitle}
               </div>
@@ -115,7 +119,7 @@ function WaveStatusBox() {
               <div className="mt-1.5">
                 <TotalMintedBadge />
               </div>
-            </>
+            </div>
           )}
         </div>
         <Image
@@ -189,6 +193,7 @@ export function MintForm() {
       ? `${waveSeriesName(pivotCatalogEntry.name).toUpperCase()} WAVE ${pivotCatalogEntry.waveNumber} PRICE`
       : "TOTAL PRICE"
     : "PER NFT PRICE";
+  const showStatusLoading = useDelayedLoading(activeWave.isLoading);
 
   return (
     <div className="h-full grid grid-cols-3 grid-rows-2 text-center z-10">
@@ -216,7 +221,7 @@ export function MintForm() {
         <StatusPill
           wrongNetwork={wrongNetwork}
           isBlocked={isBlocked.state}
-          isLoading={activeWave.isLoading}
+          isLoading={showStatusLoading}
           isPaused={isPaused.state}
           isLive={Boolean(activeWave.state)}
           allWavesDone={allWavesDone}

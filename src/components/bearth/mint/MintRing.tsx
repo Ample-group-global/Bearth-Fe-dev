@@ -2,6 +2,7 @@
 
 import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { cn } from "@/lib/utils";
+import { useDelayedLoading } from "@/lib/use-delayed-loading";
 
 export function RingContainer({
   children,
@@ -121,6 +122,7 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
   const contract = useBreathContract();
 
   const isLoadingWaves = contract.waves.isLoading || contract.activeWave.isLoading;
+  const showLoadingSkeleton = useDelayedLoading(isLoadingWaves);
 
   const waveList = [...contract.waves.state].sort(
     (a, b) => a.waveNum - b.waveNum,
@@ -132,7 +134,9 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
     <div className="absolute left-1/2 -translate-x-1/2 -bottom-[850px] md:-bottom-[930px] w-[1200px] h-[1200px] scale-75 md:scale-100 flex items-center justify-center tk-hoss-round-wide">
       <div className="relative rounded-full bg-black/50 w-full h-full flex items-center justify-center">
         {isLoadingWaves
-          ? SKELETON_WAVE_NUMBERS.map((waveNum) => (
+          ? !showLoadingSkeleton
+            ? null
+            : SKELETON_WAVE_NUMBERS.map((waveNum) => (
               <RingContainer
                 key={waveNum}
                 className={cn(

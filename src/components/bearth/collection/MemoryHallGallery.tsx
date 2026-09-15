@@ -17,6 +17,7 @@ import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { getOwnedNfts, type MemoryHallNft } from "@/lib/memory-hall";
 import { getWaveCatalog, type WaveCatalogEntry } from "@/lib/wave-catalog";
 import { waveSeriesName } from "@/lib/wave-display";
+import { useDelayedLoading } from "@/lib/use-delayed-loading";
 
 const RARITY_TRAIT_KEYS = new Set(["Rarity Rank", "Rarity Tier", "Rarity Score"]);
 
@@ -129,6 +130,7 @@ export default function MemoryHallGallery() {
     ([, address]) => getOwnedNfts(address),
   );
   const { data: waveCatalog } = useSWR("wave-catalog", getWaveCatalog);
+  const showLoadingSkeleton = useDelayedLoading(isLoading);
 
   if (!authenticated || !wallet) {
     return (
@@ -142,8 +144,9 @@ export default function MemoryHallGallery() {
   }
 
   if (isLoading) {
+    if (!showLoadingSkeleton) return null;
     return (
-      <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 animate-in fade-in duration-300">
         {Array.from({ length: 8 }, (_, i) => (
           <div
             key={i}
@@ -187,7 +190,7 @@ export default function MemoryHallGallery() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 animate-in fade-in duration-300">
         {nfts.map((nft) => (
           <NftCard
             key={nft.tokenId}

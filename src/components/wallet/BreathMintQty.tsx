@@ -5,10 +5,6 @@ export function BreathMintQty() {
   const breathContract = useBreathContract();
   const { activeWave, limit, isRegistered } = breathContract;
 
-  if (activeWave.isLoading || limit.isLoading || isRegistered.isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div>
       <input
