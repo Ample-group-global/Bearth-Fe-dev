@@ -390,7 +390,16 @@ function NftDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-secondary/80 p-4 backdrop-blur-sm"
+      // grid + m-auto on the card below, not flex + items-center -- centering
+      // an overflowing child with align-items/justify-content clips whatever
+      // sticks out ABOVE center and makes it unreachable by scrolling (the
+      // browser centers first, then the scrollable range only ever covers
+      // the bottom overflow). This modal is often taller than the viewport
+      // (square image + full attributes list), so that bug cropped the top
+      // of the artwork with no way to scroll up to see it. auto margins
+      // center the same way when everything fits, but collapse to 0 and
+      // stay fully scrollable once content overflows either direction.
+      className="fixed inset-0 z-50 grid overflow-y-auto bg-secondary/80 p-4 backdrop-blur-sm"
       style={{ animation: "fadeIn 0.2s ease-out forwards" }}
       onClick={onClose}
     >
@@ -410,7 +419,7 @@ function NftDetailModal({
           // image as its own true aspect-square tile above the info removes
           // the mismatch entirely -- object-cover now crops nothing because
           // the box IS square -- and lets the modal itself be narrower.
-          "relative w-full max-w-lg overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
