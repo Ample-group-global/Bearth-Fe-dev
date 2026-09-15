@@ -106,8 +106,11 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
     if (!wallet || wallet.type !== "ethereum") return;
     if (registeredAddressRef.current === wallet.address) return;
     registeredAddressRef.current = wallet.address;
-    registerWallet(wallet.address);
-  }, [wallet]);
+    // Privy's user.id is a persistent identity that can span multiple linked
+    // wallets -- passing it lets a second wallet under the same Privy session
+    // resolve to the same customer instead of becoming a new placeholder one.
+    registerWallet(wallet.address, user?.id);
+  }, [wallet, user]);
 
   const chain =
     chains[process.env.NEXT_PUBLIC_CONTRACT_NET as keyof typeof chains] ??

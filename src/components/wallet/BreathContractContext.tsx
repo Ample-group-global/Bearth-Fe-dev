@@ -21,6 +21,7 @@ import {
 
 import BearthNFTAbi from "@/BearthNFTAbi";
 import { getWhitelistProof } from "@/lib/whitelist-proof";
+import { getWalletMintedInWave } from "@/lib/wave-mint-status";
 import { getWaveCatalog, type WaveCatalogEntry } from "@/lib/wave-catalog";
 import { useWalletConnect } from "./WalletConnectContext";
 
@@ -381,10 +382,17 @@ export function BreathContractProvider({
 
   const isRegistered = whitelistProof?.is_whitelisted ?? false;
 
-  // wavePurchaseLimit (if set for the active wave) caps a private per-wave-per-wallet
-  // counter with no public getter — enforced on-chain (PurchaseLimitExceeded revert) but
-  // not pre-checkable here. Only the global purchaseLimitEnabled/normalMaxPerWallet limit
-  // can be validated client-side.
+  // wavePurchaseLimit has a public getter, but the per-wallet-per-wave consumption
+  // counter (waveMinted[wave][wallet]) does not -- so a per-wave override can only be
+  // pre-checked here via the DB-backed mint history (synced from the same on-chain
+  // Mint events the contract itself enforces against).
+  const { data: waveMintedCount } = useSWR(
+    contract && wallet && activeWave && activeWave > 1
+      ? (["wave-minted-count", wallet.address, activeWave, contract] as const)
+      : null,
+    async ([, address, waveNum]) => getWalletMintedInWave(address, waveNum),
+  );
+
   const limit = useMemo(() => {
     // Frontend-only gate: a wallet not registered/whitelisted in customer_wallets
     // cannot mint ANY wave (1-7), even though only wave 1 enforces this on-chain.
@@ -398,11 +406,10 @@ export function BreathContractProvider({
     const remainingSupply = activeWaveInfo.qty - activeWaveInfo.soldCount;
 
     let remaining = remainingSupply;
-    if (
-      activeWaveInfo.purchaseLimit === 0n &&
-      purchaseLimitConfig?.enabled &&
-      walletTotalMinted !== undefined
-    ) {
+    if (activeWaveInfo.purchaseLimit > 0n) {
+      const remainingWave = activeWaveInfo.purchaseLimit - BigInt(waveMintedCount ?? 0);
+      remaining = remainingWave < remainingSupply ? remainingWave : remainingSupply;
+    } else if (purchaseLimitConfig?.enabled && walletTotalMinted !== undefined) {
       const remainingGlobal =
         purchaseLimitConfig.maxPerWallet - walletTotalMinted;
       remaining =
@@ -417,6 +424,7 @@ export function BreathContractProvider({
     allowlistClaimed,
     purchaseLimitConfig,
     walletTotalMinted,
+    waveMintedCount,
   ]);
 
   const getFeeOverrides = useCallback(async () => {

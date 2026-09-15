@@ -14,7 +14,7 @@ export async function getWhitelistProof(
   const result = fetch(`${process.env.BEARTH_API_URL}/api/whitelist/test`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address }),
+    body: JSON.stringify({ address, contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS }),
   })
     .then((res) => res.json())
     .then((data) => {
