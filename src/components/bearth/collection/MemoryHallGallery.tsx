@@ -419,7 +419,7 @@ function NftDetailModal({
           // image as its own true aspect-square tile above the info removes
           // the mismatch entirely -- object-cover now crops nothing because
           // the box IS square -- and lets the modal itself be narrower.
-          "relative m-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-sm overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
@@ -482,7 +482,7 @@ function NftDetailModal({
             overflow-y-auto scrolls the page rather than a scrollbar living
             inside the card. */}
         <div
-            className="relative overflow-hidden p-5 pb-6 sm:p-6"
+            className="relative overflow-hidden p-4 pb-5"
             style={{
               background: `radial-gradient(120% 60% at 0% 0%, ${tier.glowColor}, transparent 60%)`,
             }}
@@ -496,10 +496,10 @@ function NftDetailModal({
               <SparklesIcon className="size-3" />
               {nft.rarityTier ?? (nft.isRevealed ? "Revealed" : "Blind Box")}
             </span>
-            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-secondary sm:text-[1.75rem]">
+            <h2 className="mt-1.5 text-lg font-extrabold tracking-tight text-secondary">
               Bearth #{nft.tokenId}
             </h2>
-            <p className="text-sm text-secondary/60">
+            <p className="text-xs text-secondary/60">
               {waveEntry
                 ? `${waveSeriesName(waveEntry.name)} · Wave ${nft.waveNumber}`
                 : nft.waveNumber !== null
@@ -508,21 +508,21 @@ function NftDetailModal({
               {isFreeWave !== undefined && (isFreeWave ? " · Free mint" : " · Paid mint")}
             </p>
 
-            <div className="mt-3">
+            <div className="mt-2.5">
               {nft.isRevealed && (nft.rarityRank !== null || nft.rarityScore !== null) && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   {nft.rarityRank !== null && (
                     <div
                       className={cn(
-                        "rounded-xl bg-gradient-to-b p-2.5 ring-1",
+                        "rounded-lg bg-gradient-to-b p-2 ring-1",
                         tier.wash,
                         tier.ring,
                       )}
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-secondary/45">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
                         Rarity Rank
                       </p>
-                      <p className={cn("text-lg font-bold", tier.text)}>
+                      <p className={cn("text-sm font-bold", tier.text)}>
                         #{nft.rarityRank}
                       </p>
                     </div>
@@ -530,35 +530,35 @@ function NftDetailModal({
                   {nft.rarityScore !== null && (
                     <div
                       className={cn(
-                        "rounded-xl bg-gradient-to-b p-2.5 ring-1",
+                        "rounded-lg bg-gradient-to-b p-2 ring-1",
                         tier.wash,
                         tier.ring,
                       )}
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-secondary/45">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
                         Rarity Score
                       </p>
-                      <p className="text-lg font-bold text-secondary">{nft.rarityScore}</p>
+                      <p className="text-sm font-bold text-secondary">{nft.rarityScore}</p>
                     </div>
                   )}
                 </div>
               )}
 
               {nft.isRevealed && traitEntries.length > 0 && (
-                <div className="mt-3">
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-secondary/45">
+                <div className="mt-2.5">
+                  <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-secondary/45">
                     Attributes
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {traitEntries.map(([traitType, value]) => (
                       <div
                         key={traitType}
-                        className="rounded-xl bg-secondary/[0.04] p-2 ring-1 ring-secondary/[0.06] transition-colors hover:bg-secondary/[0.07]"
+                        className="rounded-lg bg-secondary/[0.04] p-1.5 ring-1 ring-secondary/[0.06] transition-colors hover:bg-secondary/[0.07]"
                       >
-                        <p className="truncate text-[9px] font-semibold uppercase tracking-wide text-secondary/45">
+                        <p className="truncate text-[8px] font-semibold uppercase tracking-wide text-secondary/45">
                           {traitType}
                         </p>
-                        <p className="truncate text-sm font-semibold text-secondary">
+                        <p className="truncate text-xs font-semibold text-secondary">
                           {value}
                         </p>
                       </div>
@@ -568,7 +568,7 @@ function NftDetailModal({
               )}
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <CopyableAddress address={nft.ownerAddress} />
               {CONTRACT_ADDRESS && (
                 <a
