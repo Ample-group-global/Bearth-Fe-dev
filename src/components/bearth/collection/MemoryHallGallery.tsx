@@ -379,7 +379,7 @@ function NftDetailModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative m-auto w-full max-w-[20rem] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-[26rem] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
@@ -401,7 +401,7 @@ function NftDetailModal({
                 alt={`Bearth #${nft.tokenId}`}
                 fill
                 unoptimized
-                className="object-cover"
+                className="object-contain"
               />
               <div className="reveal-sheen pointer-events-none absolute inset-0" />
             </>
@@ -413,7 +413,7 @@ function NftDetailModal({
               loop
               muted
               playsInline
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           ) : nft.blindBoxImageUrl ? (
             <Image
@@ -421,7 +421,7 @@ function NftDetailModal({
               alt="Sealed Bearth"
               fill
               unoptimized
-              className="object-cover"
+              className="object-contain"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-secondary/40">
