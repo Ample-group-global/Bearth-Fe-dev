@@ -379,7 +379,7 @@ function NftDetailModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "relative m-auto w-full max-w-[26rem] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
+          "relative m-auto w-full max-w-[32rem] overflow-hidden rounded-3xl bg-white ring-1 ring-secondary/10",
           tier.glow,
         )}
         style={{ animation: "modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards" }}
@@ -393,16 +393,18 @@ function NftDetailModal({
           <XIcon className="size-4" />
         </button>
 
-        <div className="relative aspect-[5/4] w-full overflow-hidden bg-secondary/5">
+        <div className="relative aspect-square max-h-[42vh] w-full overflow-hidden bg-secondary/5">
           {imageUrl ? (
             <>
-              <Image
-                src={imageUrl}
-                alt={`Bearth #${nft.tokenId}`}
-                fill
-                unoptimized
-                className="object-contain"
-              />
+              <div className="absolute inset-4">
+                <Image
+                  src={imageUrl}
+                  alt={`Bearth #${nft.tokenId}`}
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
               <div className="reveal-sheen pointer-events-none absolute inset-0" />
             </>
           ) : nft.blindBoxVideoUrl ? (
@@ -413,16 +415,18 @@ function NftDetailModal({
               loop
               muted
               playsInline
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain p-4"
             />
           ) : nft.blindBoxImageUrl ? (
-            <Image
-              src={nft.blindBoxImageUrl}
-              alt="Sealed Bearth"
-              fill
-              unoptimized
-              className="object-contain"
-            />
+            <div className="absolute inset-4">
+              <Image
+                src={nft.blindBoxImageUrl}
+                alt="Sealed Bearth"
+                fill
+                unoptimized
+                className="object-contain"
+              />
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center text-xs uppercase tracking-wide text-secondary/40">
               Blind Box
