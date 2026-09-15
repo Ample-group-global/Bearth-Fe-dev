@@ -227,33 +227,35 @@ export default function MintRing({ children }: { children: React.ReactNode }) {
                   }
                   className={cn(
                     ROTATION_BY_OFFSET[w.waveNum - pivot + 6],
+                    // Green = actually mintable right now -- matches the
+                    // STATUS pill's "MINT LIVE" color so the two live
+                    // indicators on this page agree with each other.
                     isActive &&
-                      "text-primary opacity-100 font-extrabold drop-shadow-[0_0_10px_rgba(65,175,235,0.7)]",
-                    // text-gray-400 -- the same color MintForm's STATUS text
-                    // already uses for "MINT CLOSED" elsewhere on this page,
-                    // reused here rather than a varying-opacity white so
-                    // closed/upcoming/live genuinely read as three different
-                    // colors, not three shades of the same white.
-                    isDone && "text-gray-400 font-medium",
+                      "text-green-400 opacity-100 font-extrabold drop-shadow-[0_0_10px_rgba(74,222,128,0.7)]",
+                    // Finished waves read as disabled/inert, not "done in a
+                    // good way" -- an earlier version used the same green as
+                    // active, which put a sold-out wave and a live one in
+                    // the same color family.
+                    isDone && "text-gray-500/70 font-medium",
                     !isActive && !isDone && isNext && "text-white font-semibold",
                     !isActive && !isDone && !isNext && "text-white/50 font-medium",
                   )}
                   dotClassName={cn(
                     isActive &&
-                      "border-primary bg-primary/25 shadow-[0_0_12px_rgba(65,175,235,0.8)]",
-                    isDone && "border-emerald-400 bg-emerald-400/15",
+                      "border-green-400 bg-green-400/25 shadow-[0_0_12px_rgba(74,222,128,0.8)]",
+                    isDone && "border-gray-500/50 bg-gray-500/10",
                     !isActive && !isDone && isNext && "border-white",
                     !isActive && !isDone && !isNext && "border-white/35",
                   )}
                   dotCoreClassName={cn(
-                    isActive && "bg-primary",
-                    isDone && "bg-emerald-400",
+                    isActive && "bg-green-400",
+                    isDone && "bg-gray-500/50",
                     !isActive && !isDone && isNext && "bg-white",
                     !isActive && !isDone && !isNext && "bg-white/35",
                   )}
                   lineClassName={cn(
-                    isActive && "bg-primary",
-                    isDone && "bg-emerald-400",
+                    isActive && "bg-green-400",
+                    isDone && "bg-gray-500/50",
                     !isActive && !isDone && isNext && "bg-white",
                     !isActive && !isDone && !isNext && "bg-white/35",
                   )}
