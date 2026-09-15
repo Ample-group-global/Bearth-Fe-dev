@@ -190,14 +190,18 @@ export default function MemoryHallGallery() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2.5 py-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 animate-in fade-in duration-300">
+      <div className="animate-in fade-in flex flex-wrap justify-center gap-2.5 py-8 duration-300 sm:gap-3.5">
         {nfts.map((nft) => (
-          <NftCard
+          <div
             key={nft.tokenId}
-            nft={nft}
-            waveEntry={waveCatalog?.find((w) => w.waveNumber === nft.waveNumber)}
-            onOpen={() => setSelectedTokenId(nft.tokenId)}
-          />
+            className="w-[calc(50%-0.3125rem)] sm:w-[calc(33.333%-0.5834rem)] lg:w-[calc(25%-0.6563rem)] xl:w-[calc(20%-0.7rem)] 2xl:w-[calc(16.6667%-0.7292rem)]"
+          >
+            <NftCard
+              nft={nft}
+              waveEntry={waveCatalog?.find((w) => w.waveNumber === nft.waveNumber)}
+              onOpen={() => setSelectedTokenId(nft.tokenId)}
+            />
+          </div>
         ))}
       </div>
       {selectedNft && (
