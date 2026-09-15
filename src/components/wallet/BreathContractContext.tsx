@@ -81,6 +81,13 @@ export interface BreathContractContextValue {
   isRegistered: SWRState<boolean>;
   allowlistClaimed: SWRState<boolean>;
   walletTotalMinted: SWRState<bigint>;
+  // Both enforced on-chain regardless of what this UI shows (whenNotPaused
+  // modifier, blockedAccounts[msg.sender] check in waveMint/whitelistMint) --
+  // mirrored here purely so a paused contract or a blocked wallet shows an
+  // honest "why" instead of a mint button that looks live and only fails
+  // after the customer has already paid gas for a doomed transaction.
+  isPaused: SWRState<boolean>;
+  isBlocked: SWRState<boolean>;
 
   mint: () => Promise<Hex>;
   mintQty: number;
@@ -99,6 +106,8 @@ const defaultValue: BreathContractContextValue = {
   isRegistered: { state: false, isLoading: true },
   allowlistClaimed: { state: false, isLoading: true },
   walletTotalMinted: { state: BigInt(0), isLoading: true },
+  isPaused: { state: false, isLoading: true },
+  isBlocked: { state: false, isLoading: true },
   mint: async () => "0x" as Hex,
   mintQty: 1,
   setMintQty: () => {},
@@ -380,6 +389,22 @@ export function BreathContractProvider({
       },
     );
 
+  const { data: isPaused, isLoading: isPausedLoading } = useSWR(
+    contract ? (["contract-paused", contract] as const) : null,
+    ([, c]) => c.read.paused() as Promise<boolean>,
+    // Pausing is an emergency admin action that can happen at any moment
+    // mid-session -- unlike the rest of this context's reads, this one is
+    // worth polling instead of only fetching once on mount.
+    { refreshInterval: 15_000 },
+  );
+
+  const { data: isBlocked, isLoading: isBlockedLoading } = useSWR(
+    contract && wallet
+      ? (["blocked-accounts", wallet.address, contract] as const)
+      : null,
+    ([, address, c]) => c.read.blockedAccounts([address as Hex]) as Promise<boolean>,
+  );
+
   const isRegistered = whitelistProof?.is_whitelisted ?? false;
 
   // wavePurchaseLimit has a public getter, but the per-wallet-per-wave consumption
@@ -394,6 +419,10 @@ export function BreathContractProvider({
   );
 
   const limit = useMemo(() => {
+    // Both enforced on-chain (whenNotPaused, blockedAccounts check) -- these
+    // two only exist so the UI reads 0 instead of showing a live-looking
+    // mint button that's actually guaranteed to revert.
+    if (isPaused || isBlocked) return 0n;
     // Frontend-only gate: a wallet not registered/whitelisted in customer_wallets
     // cannot mint ANY wave (1-7), even though only wave 1 enforces this on-chain.
     if (!isRegistered) return 0n;
@@ -418,6 +447,8 @@ export function BreathContractProvider({
 
     return remaining < 0n ? 0n : remaining;
   }, [
+    isPaused,
+    isBlocked,
     isRegistered,
     activeWave,
     activeWaveInfo,
@@ -448,6 +479,8 @@ export function BreathContractProvider({
     // fully ready -- reads elsewhere on the page no longer wait on this at all.
     if (!writableContract || !wallet)
       throw new Error("Not initialized");
+    if (isPaused) throw new Error("Minting is currently paused");
+    if (isBlocked) throw new Error("This wallet is blocked from minting");
     if (!isRegistered) throw new Error("Wallet is not registered/whitelisted");
 
     if (activeWave === 1) {
@@ -504,6 +537,8 @@ export function BreathContractProvider({
   }, [
     writableContract,
     wallet,
+    isPaused,
+    isBlocked,
     isRegistered,
     activeWave,
     activeWaveInfo,
@@ -570,6 +605,14 @@ export function BreathContractProvider({
         isLoading:
           walletTotalMintedLoading || walletTotalMinted === undefined,
       },
+      isPaused: {
+        state: isPaused ?? false,
+        isLoading: isPausedLoading || isPaused === undefined,
+      },
+      isBlocked: {
+        state: isBlocked ?? false,
+        isLoading: isBlockedLoading || isBlocked === undefined,
+      },
       mint,
       mintQty,
       setMintQty,
@@ -584,6 +627,10 @@ export function BreathContractProvider({
       wavesLoading,
       activeWaveInfo,
       limit,
+      isPaused,
+      isPausedLoading,
+      isBlocked,
+      isBlockedLoading,
       allowlistClaimedLoading,
       purchaseLimitConfigLoading,
       walletTotalMintedLoading,

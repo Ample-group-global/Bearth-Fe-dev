@@ -123,7 +123,8 @@ function WaveStatusBox() {
 }
 
 export function MintForm() {
-  const { activeWave, pivotWave, waves, waveCatalog } = useBreathContract();
+  const { activeWave, pivotWave, waves, waveCatalog, isPaused, isBlocked } =
+    useBreathContract();
   const { wrongNetwork } = useWalletConnect();
   // Every wave closed or past its scheduled end -- distinct from "no wave
   // active yet" (a real upcoming wave is still queued). Only this genuine
@@ -176,26 +177,32 @@ export function MintForm() {
         <div className="font-semibold">STATUS</div>
         <div
           className={
-            wrongNetwork
+            wrongNetwork || isBlocked.state
               ? "text-red-500"
               : activeWave.isLoading
                 ? "text-gray-400"
-                : activeWave.state
-                  ? "text-green-500"
-                  : allWavesDone
-                    ? "text-gray-400"
-                    : "text-primary"
+                : isPaused.state
+                  ? "text-yellow-500"
+                  : activeWave.state
+                    ? "text-green-500"
+                    : allWavesDone
+                      ? "text-gray-400"
+                      : "text-primary"
           }
         >
           {wrongNetwork
             ? "WRONG NETWORK"
-            : activeWave.isLoading
-              ? "LOADING..."
-              : activeWave.state
-                ? "MINT LIVE"
-                : allWavesDone
-                  ? "MINT CLOSED"
-                  : "COMING SOON"}
+            : isBlocked.state
+              ? "WALLET BLOCKED"
+              : activeWave.isLoading
+                ? "LOADING..."
+                : isPaused.state
+                  ? "MINTING PAUSED"
+                  : activeWave.state
+                    ? "MINT LIVE"
+                    : allWavesDone
+                      ? "MINT CLOSED"
+                      : "COMING SOON"}
         </div>
       </div>
     </div>
