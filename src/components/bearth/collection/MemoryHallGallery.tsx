@@ -11,9 +11,10 @@ import {
   XIcon,
 } from "lucide-react";
 import { BearthButton } from "@/components/bearth/BearthButton";
-import { chainOptions } from "@/components/wallet/chains";
+import { chainOptions, chains } from "@/components/wallet/chains";
 import { cn } from "@/lib/utils";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
+import { useBreathContract } from "@/components/wallet/BreathContractContext";
 import { getOwnedNfts, type MemoryHallNft } from "@/lib/memory-hall";
 import { getWaveCatalog, type WaveCatalogEntry } from "@/lib/wave-catalog";
 import { waveSeriesName } from "@/lib/wave-display";
@@ -166,11 +167,11 @@ function Starfield() {
 }
 
 const IPFS_GATEWAY = "https://amgbearth.myfilebase.com/ipfs/";
-const chainOption =
-  chainOptions[process.env.NEXT_PUBLIC_CONTRACT_NET as "mainnet" | "sepolia"];
-const CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-)?.replace(/\s+/g, "");
+
+function useChainOption() {
+  const { chain } = useWalletConnect();
+  return chain?.id === chains.mainnet.id ? chainOptions.mainnet : chainOptions.sepolia;
+}
 
 function nftImageUrl(imageIpfsHash: string | null, isRevealed: boolean) {
   if (!isRevealed || !imageIpfsHash) return null;
@@ -343,6 +344,8 @@ function NftCard({
   waveEntry: WaveCatalogEntry | undefined;
   onOpen: () => void;
 }) {
+  const { contractAddress } = useBreathContract();
+  const chainOption = useChainOption();
   const imageUrl = nftImageUrl(nft.imageIpfsHash, nft.isRevealed);
   const isFreeWave = waveEntry ? waveEntry.priceEth === 0 : undefined;
   const traitCount = Object.keys(nft.traits ?? {}).filter(
@@ -461,9 +464,9 @@ function NftCard({
           onClick={(e) => e.stopPropagation()}
         >
           <CopyableAddress address={nft.ownerAddress} light />
-          {CONTRACT_ADDRESS && (
+          {contractAddress && (
             <a
-              href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
+              href={chainOption.openseaUrl(contractAddress, String(nft.tokenId))}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"
@@ -487,6 +490,8 @@ function NftDetailModal({
   waveEntry: WaveCatalogEntry | undefined;
   onClose: () => void;
 }) {
+  const { contractAddress } = useBreathContract();
+  const chainOption = useChainOption();
   const imageUrl = nftImageUrl(nft.imageIpfsHash, nft.isRevealed);
   const isFreeWave = waveEntry ? waveEntry.priceEth === 0 : undefined;
   const traitEntries = Object.entries(nft.traits ?? {}).filter(
@@ -647,9 +652,9 @@ function NftDetailModal({
 
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <CopyableAddress address={nft.ownerAddress} />
-              {CONTRACT_ADDRESS && (
+              {contractAddress && (
                 <a
-                  href={chainOption.openseaUrl(CONTRACT_ADDRESS, String(nft.tokenId))}
+                  href={chainOption.openseaUrl(contractAddress, String(nft.tokenId))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-semibold text-primary no-underline hover:underline"

@@ -80,6 +80,7 @@ export interface BreathContractContextValue {
   mint: () => Promise<Hex>;
   mintQty: number;
   setMintQty: (qty: number) => void;
+  contractAddress: string;
 }
 
 const defaultValue: BreathContractContextValue = {
@@ -98,6 +99,7 @@ const defaultValue: BreathContractContextValue = {
   isBlocked: { state: false, isLoading: true },
   mint: async () => "0x" as Hex,
   mintQty: 1,
+  contractAddress: "",
   setMintQty: () => {},
 };
 
@@ -106,8 +108,10 @@ export const BreathContractContext =
 
 export function BreathContractProvider({
   children,
+  contractAddress: rawContractAddress,
 }: {
   children: React.ReactNode;
+  contractAddress: string;
 }) {
   const [mintQty, setMintQty] = useState(1);
   const whitelistPollCountRef = useRef(0);
@@ -149,32 +153,33 @@ export function BreathContractProvider({
     [wallet, chain, provider],
   );
 
+  const contractAddress = useMemo(
+    () => rawContractAddress?.replace(/\s+/g, "") as `0x${string}`,
+    [rawContractAddress],
+  );
+
   const contract = useMemo(
     () =>
       publicClient
         ? getContract({
-            address: (
-              process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-            )?.replace(/\s+/g, "") as `0x${string}`,
+            address: contractAddress,
             abi: BearthNFTAbi.abi,
             client: { public: publicClient },
           })
         : null,
-    [publicClient],
+    [publicClient, contractAddress],
   );
 
   const writableContract = useMemo(
     () =>
       publicClient && walletClient
         ? getContract({
-            address: (
-              process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string
-            )?.replace(/\s+/g, "") as `0x${string}`,
+            address: contractAddress,
             abi: BearthNFTAbi.abi,
             client: { public: publicClient, wallet: walletClient },
           })
         : null,
-    [publicClient, walletClient],
+    [publicClient, walletClient, contractAddress],
   );
 
   const { data: phase, isLoading: phaseLoading } = useSWR(
@@ -529,6 +534,7 @@ export function BreathContractProvider({
       mint,
       mintQty,
       setMintQty,
+      contractAddress: contract?.address ?? "",
     }),
     [
       phase,
@@ -555,6 +561,7 @@ export function BreathContractProvider({
       walletTotalMinted,
       mint,
       mintQty,
+      contract,
     ],
   );
 

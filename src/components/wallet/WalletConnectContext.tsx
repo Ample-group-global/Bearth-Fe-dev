@@ -81,9 +81,10 @@ export const WalletConnectContext = createContext<WalletConnectContextValue>({
 
 interface WalletConnectContextProps {
   children: React.ReactNode;
+  network?: string;
 }
 
-export function WalletConnectProvider({ children }: WalletConnectContextProps) {
+export function WalletConnectProvider({ children, network }: WalletConnectContextProps) {
   const { login, logout, user, authenticated, ready: privyReady } =
     usePrivy();
 
@@ -113,7 +114,7 @@ export function WalletConnectProvider({ children }: WalletConnectContextProps) {
   }, [wallet, user]);
 
   const chain =
-    chains[process.env.NEXT_PUBLIC_CONTRACT_NET as keyof typeof chains] ??
+    chains[network as keyof typeof chains] ??
     chains.sepolia;
 
   const [wrongNetwork, setWrongNetwork] = useState(false);

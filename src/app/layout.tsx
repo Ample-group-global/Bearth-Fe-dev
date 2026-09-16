@@ -7,7 +7,6 @@ import { BreathLiquidGlassBase } from "@/components/bearth/navigation/BearthLiqu
 import { GoogleTagManager } from "@next/third-parties/google";
 import BearthTopBar from "@/components/bearth/navigation/BearthTopBar";
 import { ServerProvider } from "@/provider/server-provider";
-import { notFound } from "next/navigation";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -87,10 +86,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  if (!process.env.NEXT_PUBLIC_CONTRACT_NET) {
-    return notFound();
-  }
-
   return (
     <html lang="en">
       {process.env.NEXT_PUBLIC_GTM_ID && (

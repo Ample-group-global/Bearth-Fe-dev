@@ -10,7 +10,7 @@ export async function getWalletMintedInWave(
     `${(process.env.BEARTH_API_URL ?? "").trim()}/api/nft-sell/collection/tokens`,
   );
   url.searchParams.set("owner", address);
-  url.searchParams.set("contract_address", getContractAddress());
+  url.searchParams.set("contract_address", await getContractAddress());
 
   const res = await fetch(url.toString());
   if (!res.ok) return 0;

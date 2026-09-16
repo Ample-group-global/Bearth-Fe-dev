@@ -12,10 +12,11 @@ export interface MerkleProofResult {
 export async function getWhitelistProof(
   address: string,
 ): Promise<MerkleProofResult> {
+  const contractAddress = await getContractAddress();
   const res = await fetch(`${process.env.BEARTH_API_URL}/api/whitelist/test`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address, contractAddress: getContractAddress() }),
+    body: JSON.stringify({ address, contractAddress }),
   });
   if (!res.ok) {
     throw new Error(`Whitelist check failed (${res.status})`);

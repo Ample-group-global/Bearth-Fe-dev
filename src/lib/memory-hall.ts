@@ -44,7 +44,7 @@ export async function getOwnedNfts(
     `${(process.env.BEARTH_API_URL ?? "").trim()}/api/nft-sell/collection/tokens`,
   );
   url.searchParams.set("owner", address);
-  const contractAddress = getContractAddress();
+  const contractAddress = await getContractAddress();
   if (contractAddress) {
     url.searchParams.set("contract_address", contractAddress);
   }

@@ -8,10 +8,14 @@ import { WalletConnectProvider } from "@/components/wallet/WalletConnectContext"
 
 export const ClientPrivyProvider = ({
   appId,
+  contractAddress,
+  network,
   children,
 }: {
   children: React.ReactNode;
   appId: string;
+  contractAddress: string;
+  network: string;
 }) => {
   if (typeof window === "undefined") {
     return <Fragment key="client-privy-provider">{children}</Fragment>;
@@ -39,8 +43,8 @@ export const ClientPrivyProvider = ({
             },
           }}
         >
-          <WalletConnectProvider>
-            <BreathContractProvider>{children}</BreathContractProvider>
+          <WalletConnectProvider network={network}>
+            <BreathContractProvider contractAddress={contractAddress}>{children}</BreathContractProvider>
           </WalletConnectProvider>
         </PrivyProvider>
       </SWRConfig>

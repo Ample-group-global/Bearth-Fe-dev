@@ -11,7 +11,7 @@ import {
   MintAnimationCanvas,
   type MintAnimationCanvasHandle,
 } from "@/components/bearth/mint/MintAnimationCanvas";
-import { chainOptions } from "@/components/wallet/chains";
+import { chainOptions, chains } from "@/components/wallet/chains";
 import { useWalletConnect } from "@/components/wallet/WalletConnectContext";
 import { useMintFlow } from "@/provider/mint-flow-handler";
 
@@ -48,10 +48,8 @@ export function MintingAnimation({
   txHash: string;
   failureReason?: string;
 }) {
-  const chainOption =
-    chainOptions[process.env.NEXT_PUBLIC_CONTRACT_NET as "mainnet" | "sepolia"];
-
   const { chain, wallet } = useWalletConnect();
+  const chainOption = chain?.id === chains.mainnet.id ? chainOptions.mainnet : chainOptions.sepolia;
   const { mutate } = useSWRConfig();
   const { clearMintFlow } = useMintFlow();
   const router = useRouter();
